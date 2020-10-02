@@ -2,6 +2,7 @@
 import p1meter
 import p1meter_sym
 import uasyncio as asyncio
+import wifi
 
 from machine import UART
 uart = UART(1, rx=2, tx=5, baudrate=115200,  bits=8, parity=None, stop=1 , invert=UART.INV_RX | UART.INV_TX  )
@@ -20,7 +21,7 @@ def set_global_exception():
 async def main():
 
     set_global_exception()  # Debug aid
-    if run_sym:
+    asyncio.create_task(wifi.ensure_connected())
         asyncio.create_task(p1meter_sym.sender(uart))
     asyncio.create_task(p1meter.receiver(uart))
     while True:
