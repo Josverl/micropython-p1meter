@@ -61,7 +61,7 @@ t : dict = None
 async def publish_meters(telegram: dict):
     t = telegram
     if telegram['meters']:
-        log.debug("{} meters found".format(len(telegram['meters'])))
+        log.info("considering {} meters for mqtt publication".format(len(telegram['meters'])))
 
         if 1:
             #write meters as json 
@@ -126,7 +126,7 @@ async def receiver(uart_rx: UART):
                         lineinfo['unit'] = reading[1]
                     else:
                         lineinfo['reading'] = reading[0]
-                    log.info(lineinfo)
+                    log.debug(lineinfo)
                     tele['meters'].append(lineinfo )
     
 

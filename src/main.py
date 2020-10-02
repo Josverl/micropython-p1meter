@@ -34,6 +34,7 @@ async def main():
     while True:
         await asyncio.sleep(1)
 
+print('python p1 meter is starting up')
 try:
     asyncio.run(main())
 finally:
