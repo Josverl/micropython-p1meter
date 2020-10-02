@@ -3,6 +3,7 @@ import p1meter_sym
 import uasyncio as asyncio
 import wifi
 import logging
+import gc
 
 from config import RX_PIN_NR, TX_PIN_NR
 from machine import UART
@@ -22,9 +23,17 @@ def set_global_exception():
     loop = asyncio.get_event_loop()
     loop.set_exception_handler(handle_exception)
 
+async def maintain_memory(interval=600):
+    "run GC at a 10 minute interval"
+    while 1: 
+        await asyncio.sleep(interval)
+        gc.collect()
+        gc.threshold(gc.mem_free() // 4 + gc.mem_alloc())
+
 async def main():
     log.info("Set up main tasks")
     set_global_exception()  # Debug aid
+    asyncio.create_task(maintain_memory())
     asyncio.create_task(wifi.ensure_connected())
     asyncio.create_task(p1meter.ensure_mqtt_connected())
     if RUN_SIM:
