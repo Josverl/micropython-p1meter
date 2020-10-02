@@ -3,6 +3,10 @@ import uasyncio as asyncio
 from machine import UART
 import ure as re
 import ujson as json
+import logging
+
+# Logging
+log = logging.getLogger('p1meter')
 
 # ------------------------
 # decode bytearray
@@ -33,13 +37,18 @@ mqtt_client = None
 async def ensure_mqtt_connected(server = SERVER):
     #todo: refactor to class to get rid of global
     global mqtt_client
+
+    #todo: WaitFor / sync / semafore Wifi connected 
+    # also try/check for OSError: 118 when connecting, to avoid breaking the loop 
+    # repro: machine.reset()
     while True:
         if mqtt_client == None:
+            log.info("create mqtt client {0}".format(server))
             mqtt_client  = MQTTClient(CLIENT_ID, server , user='jos', password='Passport')
         if mqtt_client.sock == None:
-            print("connecting to mqtt server {0}".format(server))
+            log.info("connecting to mqtt server {0}".format(server))
             mqtt_client.connect()
-            print("Connected")
+            log.info("Connected")
         # check 
         await asyncio.sleep(30)
 
@@ -52,7 +61,7 @@ t : dict = None
 async def publish_meters(telegram: dict):
     t = telegram
     if telegram['meters']:
-        print("{} meters found".format(len(telegram['meters'])))
+        log.debug("{} meters found".format(len(telegram['meters'])))
 
         if 1:
             #write meters as json 
@@ -60,7 +69,7 @@ async def publish_meters(telegram: dict):
             try:
                 mqtt_client.publish(topic, json.dumps(telegram['meters'])) 
             except BaseException as error:  
-                print("Error: sending to MQTT : {}".format(error) )
+                log.error("Error: sending to MQTT : {}".format(error) )
                 #todo: flag reinit of MQTT client 
 
         #write meters 1 by one 
@@ -69,7 +78,7 @@ async def publish_meters(telegram: dict):
             try:
                 mqtt_client.publish(topic, meter['reading']) 
             except BaseException as error:  
-                print("Error: sending to MQTT : {}".format(error) )
+                log.error("Error: sending to MQTT : {}".format(error) )
                 #todo: flag reinit of MQTT client 
     return
 
@@ -84,7 +93,7 @@ async def receiver(uart_rx: UART):
     tele = {'header': '', 'data': [], 'meters': [],  'footer': ''}
     while True:
         line = await sreader.readline()
-        # print("raw:", line)
+        log.debug("raw: {}".format(line))
         if line:
             # to string and remove last character : \n
             try:
@@ -92,13 +101,13 @@ async def receiver(uart_rx: UART):
                 line = line[:-1]
             except BaseException as error:  # pylint: disable=unused-variable
                 line = "--noise--"
-            # print("clean", line)
+            # log.debug("clean".format(line))
             if line[0] == '/':
-                print('header found')
+                log.debug('header found')
                 tele = {'header': '', 'data': [], 'meters': [],  'footer': ''}
 
             elif line[0] == '!':
-                print('footer found')
+                log.debug('footer found')
                 tele['footer'] = line
                 # todo: -check CRC 
                 await publish_meters(tele)
@@ -117,7 +126,7 @@ async def receiver(uart_rx: UART):
                         lineinfo['unit'] = reading[1]
                     else:
                         lineinfo['reading'] = reading[0]
-                    print(lineinfo)
+                    log.info(lineinfo)
                     tele['meters'].append(lineinfo )
     
 

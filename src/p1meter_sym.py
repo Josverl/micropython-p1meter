@@ -1,6 +1,8 @@
 import uasyncio as asyncio
 import random
-
+import logging
+# Logging
+log = logging.getLogger('SIMULATION')
 #####################################################
 # test rig 
 #####################################################
@@ -57,10 +59,11 @@ telegram = """/XMX5LGBBFG1012650850
 async def sender(uart_tx :UART):
     """
     Simulates data being sent from the t1 port to aud in debugging
-    this requires pin 2rx)  and 5(tx) to be connected
+    this requires pin (rx)  and 5(tx) to be connected
     """
     swriter = asyncio.StreamWriter(uart_tx, {})
     while True:
+        log.info('send telegram')
         swriter.write(telegram.format(0,random.random()*100,random.random()*100))
         await swriter.drain()
         await asyncio.sleep(5)
