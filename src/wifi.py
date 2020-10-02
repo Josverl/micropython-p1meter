@@ -1,5 +1,8 @@
 import uasyncio as asyncio
-import sys,network, time, machine
+import sys
+import network
+import utime as time
+import machine
 from config import homenet
 import logging
 
@@ -14,7 +17,7 @@ async def ensure_connected():
             log.warning('found wifi not connected')
             await connect()
         # check 
-        await asyncio.sleep(30)
+        await asyncio.sleep(10)
 
 async def connect():
     # create station interface - Standard WiFi client
@@ -24,6 +27,16 @@ async def connect():
         wlan.active(True)
         # connect to a known WiFi ( from config file) 
         wlan.connect(homenet['SSID'], homenet['password'])
+
+        while wlan.status() == network.STAT_CONNECTING:
+            await asyncio.sleep(1)
+        t = time.ticks_ms()
+        timeout = 50 # self.timeout
+        log.info('Checking WiFi stability for {}ms'.format(2 * timeout))
+        # Timeout ensures stable WiFi and forces minimum outage duration
+        while wlan.isconnected() and time.ticks_diff(time.ticks_ms(), t) < 2 * timeout:
+            await asyncio.sleep(1)
+
     else:
         log.debug("Wlan already active")
 
