@@ -4,6 +4,7 @@ from machine import UART
 import ure as re
 import ujson as json
 import logging
+from wifi import wlan
 
 # Logging
 log = logging.getLogger('p1meter')
@@ -26,6 +27,7 @@ import ubinascii
 import machine
 from umqtt.simple import MQTTClient
 from machine import Pin
+import network
 
 
 # Default MQTT server to connect to
@@ -46,11 +48,19 @@ async def ensure_mqtt_connected(server = SERVER):
             log.info("create mqtt client {0}".format(server))
             mqtt_client  = MQTTClient(CLIENT_ID, server , user='jos', password='Passport')
         if mqtt_client.sock == None:
-            log.info("connecting to mqtt server {0}".format(server))
-            mqtt_client.connect()
-            log.info("Connected")
+            log.warning('need to start mqqt client')
+            # but only if the adapter has got an IP assigned // DHCP
+            if wlan.status() == network.STAT_GOT_IP:
+                try: 
+                    log.info("connecting to mqtt server {0}".format(server))
+                    mqtt_client.connect()
+                    log.info("Connected")
+                except OSError:
+                    pass
+            else:
+                log.warning('network not ready')
         # check 
-        await asyncio.sleep(30)
+        await asyncio.sleep(10)
 
 
 
@@ -58,27 +68,28 @@ async def ensure_mqtt_connected(server = SERVER):
 #
 #####################################################
 t : dict = None
-async def publish_meters(telegram: dict):
+async def publish_readings(telegram: dict):
     t = telegram
-    if telegram['meters']:
-        log.info("considering {} meters for mqtt publication".format(len(telegram['meters'])))
+    if telegram['readings']:
+        log.info("considering {} meter readings for mqtt publication".format(len(telegram['readings'])))
 
         if 1:
-            #write meters as json 
+            #write readings as json 
             topic = TOPIC + b"/json"
             try:
-                mqtt_client.publish(topic, json.dumps(telegram['meters'])) 
+                mqtt_client.publish(topic, json.dumps(telegram['readings'])) 
             except BaseException as error:  
                 log.error("Error: sending to MQTT : {}".format(error) )
                 #todo: flag reinit of MQTT client 
 
-        #write meters 1 by one 
-        for meter in telegram['meters']:
+        #write readings 1 by one 
+        for meter in telegram['readings']:
             topic = TOPIC + b"/"+ meter['meter'].encode()
             try:
                 mqtt_client.publish(topic, meter['reading']) 
             except BaseException as error:  
                 log.error("Error: sending to MQTT : {}".format(error) )
+                break
                 #todo: flag reinit of MQTT client 
     return
 
@@ -90,7 +101,7 @@ async def receiver(uart_rx: UART):
     # copy by hydrate from json ?
     # create class -- TMO 
 
-    tele = {'header': '', 'data': [], 'meters': [],  'footer': ''}
+    tele = {'header': '', 'data': [], 'readings': [],  'footer': ''}
     while True:
         line = await sreader.readline()
         log.debug("raw: {}".format(line))
@@ -104,18 +115,18 @@ async def receiver(uart_rx: UART):
             # log.debug("clean".format(line))
             if line[0] == '/':
                 log.debug('header found')
-                tele = {'header': '', 'data': [], 'meters': [],  'footer': ''}
+                tele = {'header': '', 'data': [], 'readings': [],  'footer': ''}
 
             elif line[0] == '!':
                 log.debug('footer found')
                 tele['footer'] = line
                 # todo: -check CRC 
-                await publish_meters(tele)
-                # publish_meters(tele)
+                await publish_readings(tele)
+                # publish_readings(tele)
 
             elif line != "--noise--":
                 tele['data'].append(line)
-                # split data into meters
+                # split data into readings
                 out = re.match('(.*?)\((.*)\)', line)
                 if out:
                     lineinfo = {'meter': out.group(1), 'reading':None, 'unit': None}
@@ -127,7 +138,7 @@ async def receiver(uart_rx: UART):
                     else:
                         lineinfo['reading'] = reading[0]
                     log.debug(lineinfo)
-                    tele['meters'].append(lineinfo )
+                    tele['readings'].append(lineinfo )
     
 
 
