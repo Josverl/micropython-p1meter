@@ -4,19 +4,18 @@ from machine import UART
 import uasyncio as asyncio
 import logging
 
-import p1meter
-import p1meter_sym
+from p1meter import P1Meter
+
 import wifi
 from mqttclient import ensure_mqtt_connected
 
 from config import RX_PIN_NR, TX_PIN_NR
 
+if RUN_SIM:
+    from p1meter_sym import P1MeterSIM
 
 # Logging
 log = logging.getLogger('main')
-
-#init port for recieving 115200 Baud 8N1 using inverted polarity in RX/TX 
-uart = UART(1, rx=RX_PIN_NR, tx=TX_PIN_NR, baudrate=115200,  bits=8, parity=None, stop=1 , invert=UART.INV_RX | UART.INV_TX  )
 
 def set_global_exception():
     def handle_exception(loop, context):
@@ -35,14 +34,17 @@ async def maintain_memory(interval=600):
 
 async def main():
     log.info("Set up main tasks")
+    p1_meter = P1Meter(RX_PIN_NR,TX_PIN_NR)
+    
     set_global_exception()  # Debug aid
     asyncio.create_task(maintain_memory())
     asyncio.create_task(wifi.ensure_connected())
     asyncio.create_task(ensure_mqtt_connected())
     if RUN_SIM:
         # SIMULATION: simulate meter input on this machine
-        asyncio.create_task(p1meter_sym.sender(uart))
-    asyncio.create_task(p1meter.receiver(uart))
+        sim = P1MeterSIM(p1_meter.uart)
+        asyncio.create_task(sim.sender())
+    asyncio.create_task(p1_meter.receive())
     while True:
         await asyncio.sleep(1)
 

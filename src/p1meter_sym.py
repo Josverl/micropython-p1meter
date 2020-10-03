@@ -1,5 +1,7 @@
 import uasyncio as asyncio
 import random
+from machine import UART
+
 import logging
 # Logging
 log = logging.getLogger('SIMULATION')
@@ -7,7 +9,29 @@ log = logging.getLogger('SIMULATION')
 # test rig 
 #####################################################
 
-telegram = """/XMX5LGBBFG1012650850
+
+class P1MeterSIM():
+    """
+    P1 meter to fake a Dutch electricity meter and generate some reading to test the rest of the software
+    """
+    def __init__(self, uart:UART):
+        # do not re-init port for sim
+        self.uart = uart
+        # self.telegram = template
+
+    async def sender(self, interval :int = 5):
+        """
+        Simulates data being sent from the t1 port to aud in debugging
+        this assume that pin rx=2 and tx=5 are connected
+        """
+        swriter = asyncio.StreamWriter(self.uart, {})
+        while True:
+            log.info('send telegram')
+            swriter.write(template.format(0,random.random()*100,random.random()*100))
+            await swriter.drain()
+            await asyncio.sleep(interval)
+
+template = """/XMX5LGBBFG1012650850
 1-3:0.2.8(42)
 0-0:1.0.0(200909224846S)
 0-0:96.1.1(4530303331303033373235323935313136)
@@ -55,18 +79,3 @@ telegram = """/XMX5LGBBFG1012650850
 # 0-1:24.2.1(200909220000S)(05907.828*m3)               0-[1..4] :24.2.1 Last 5-minute value (temperature converted), gas delivered to client in m3, including decimal values and capture time
 # !A7B3                                                 
 # """
-
-async def sender(uart_tx :UART):
-    """
-    Simulates data being sent from the t1 port to aud in debugging
-    this requires pin (rx)  and 5(tx) to be connected
-    """
-    swriter = asyncio.StreamWriter(uart_tx, {})
-    while True:
-        log.info('send telegram')
-        swriter.write(telegram.format(0,random.random()*100,random.random()*100))
-        await swriter.drain()
-        await asyncio.sleep(5)
-
-
-
