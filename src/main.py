@@ -1,13 +1,16 @@
+import gc
+#import machine
+from machine import UART
+import uasyncio as asyncio
+import logging
+
 import p1meter
 import p1meter_sym
-import uasyncio as asyncio
 import wifi
-import logging
-import gc
+from mqttclient import ensure_mqtt_connected
 
 from config import RX_PIN_NR, TX_PIN_NR
-from machine import UART
-import machine
+
 
 # Logging
 log = logging.getLogger('main')
@@ -35,7 +38,7 @@ async def main():
     set_global_exception()  # Debug aid
     asyncio.create_task(maintain_memory())
     asyncio.create_task(wifi.ensure_connected())
-    asyncio.create_task(p1meter.ensure_mqtt_connected())
+    asyncio.create_task(ensure_mqtt_connected())
     if RUN_SIM:
         # SIMULATION: simulate meter input on this machine
         asyncio.create_task(p1meter_sym.sender(uart))
