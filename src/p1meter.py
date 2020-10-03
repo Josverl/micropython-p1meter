@@ -5,6 +5,7 @@ import ure as re
 import ujson as json
 import logging
 from wifi import wlan
+from config import broker
 
 # Logging
 log = logging.getLogger('p1meter')
@@ -31,12 +32,11 @@ import network
 
 
 # Default MQTT server to connect to
-SERVER = "192.168.1.99"
 CLIENT_ID = b'p1_meter_'+ubinascii.hexlify(machine.unique_id())
 TOPIC = b"p1_meter"
 mqtt_client = None
 
-async def ensure_mqtt_connected(server = SERVER):
+async def ensure_mqtt_connected(broker = broker):
     #todo: refactor to class to get rid of global
     global mqtt_client
 
@@ -45,14 +45,14 @@ async def ensure_mqtt_connected(server = SERVER):
     # repro: machine.reset()
     while True:
         if mqtt_client == None:
-            log.info("create mqtt client {0}".format(server))
-            mqtt_client  = MQTTClient(CLIENT_ID, server , user='jos', password='Passport')
+            log.info("create mqtt client {0}".format(broker['server']))
+            mqtt_client  = MQTTClient(CLIENT_ID, broker['server'] , user=broker['user'], password=broker['password'])
         if mqtt_client.sock == None:
             log.warning('need to start mqqt client')
             # but only if the adapter has got an IP assigned // DHCP
             if wlan.status() == network.STAT_GOT_IP:
                 try: 
-                    log.info("connecting to mqtt server {0}".format(server))
+                    log.info("connecting to mqtt server {0}".format(broker['server']))
                     r = mqtt_client.connect()
                     log.info("Connected")
                     log.info("Connected :{}".format(r))
