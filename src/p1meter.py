@@ -53,9 +53,11 @@ async def ensure_mqtt_connected(server = SERVER):
             if wlan.status() == network.STAT_GOT_IP:
                 try: 
                     log.info("connecting to mqtt server {0}".format(server))
-                    mqtt_client.connect()
+                    r = mqtt_client.connect()
                     log.info("Connected")
-                except OSError:
+                    log.info("Connected :{}".format(r))
+                except OSError as e:
+                    log.error(e)
                     pass
             else:
                 log.warning('network not ready')
