@@ -27,5 +27,4 @@ else:
     esp.osdebug(0, esp.LOG_ERROR)   # show errors only 
     logging.basicConfig(level=logging.INFO)
 
-# run the simulator for testing
-RUN_SIM = True
+

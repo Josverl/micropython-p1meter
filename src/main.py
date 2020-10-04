@@ -3,16 +3,18 @@ import gc
 from machine import UART
 import uasyncio as asyncio
 import logging
-
 from p1meter import P1Meter
-
 import wifi
 from mqttclient import ensure_mqtt_connected
-
 from config import RX_PIN_NR, TX_PIN_NR
 
-if RUN_SIM:
+
+# run the simulator for testing
+RUN_SIM = True
+
+if RUN_SIM: 
     from p1meter_sym import P1MeterSIM
+
 
 # Logging
 log = logging.getLogger('main')
