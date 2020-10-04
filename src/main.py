@@ -33,8 +33,9 @@ async def maintain_memory(interval=600):
         await asyncio.sleep(interval)
         gc.collect()
         gc.threshold(gc.mem_free() // 4 + gc.mem_alloc())
-
+p1_meter = None
 async def main():
+    global p1_meter
     log.info("Set up main tasks")
     p1_meter = P1Meter(RX_PIN_NR,TX_PIN_NR)
     

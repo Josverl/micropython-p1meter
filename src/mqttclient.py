@@ -14,7 +14,7 @@ from wifi import wlan
 import uasyncio as asyncio
 import ujson as json
 
-from config import broker
+from config import broker , publish_as_json
 
 
 # Logging
@@ -58,27 +58,26 @@ async def ensure_mqtt_connected(broker = broker):
 #####################################################
 #
 #####################################################
-async def publish_readings(telegram: dict):
-    if telegram['readings']:
-        log.info("considering {} meter readings for mqtt publication".format(len(telegram['readings'])))
+async def publish_readings(readings: list):
+    log.info("considering {} meter readings for mqtt publication".format(len(readings)))
 
-        if 1:
-            #write readings as json 
-            topic = TOPIC + b"/json"
-            try:
-                mqtt_client.publish(topic, json.dumps(telegram['readings'])) 
-            except BaseException as error:  
-                log.error("Error: sending to MQTT : {}".format(error) )
-                #todo: flag reinit of MQTT client 
+    if publish_as_json:
+        #write readings as json 
+        topic = TOPIC + b"/json"
+        try:
+            mqtt_client.publish(topic, json.dumps(readings)) 
+        except BaseException as error:  
+            log.error("Error: sending to MQTT : {}".format(error) )
+            #todo: flag reinit of MQTT client 
 
-        #write readings 1 by one 
-        for meter in telegram['readings']:
-            topic = TOPIC + b"/"+ meter['meter'].encode()
-            try:
-                mqtt_client.publish(topic, meter['reading']) 
-            except BaseException as error:  
-                log.error("Error: sending to MQTT : {}".format(error) )
-                break
-                #todo: flag reinit of MQTT client 
+    #write readings 1 by one 
+    for meter in readings:
+        topic = TOPIC + b"/"+ meter['meter'].encode()
+        try:
+            mqtt_client.publish(topic, meter['reading']) 
+        except BaseException as error:  
+            log.error("Error: sending to MQTT : {}".format(error) )
+            break
+            #todo: flag reinit of MQTT client 
     return
 

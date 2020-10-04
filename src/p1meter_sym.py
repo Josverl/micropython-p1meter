@@ -1,10 +1,13 @@
 import uasyncio as asyncio
-import random
+from random import random
+from utilities import crc16
+
 from machine import UART
 
-import logging
+import lib.logging as logging
 # Logging
 log = logging.getLogger('SIMULATION')
+logging.basicConfig(level=logging.INFO)
 #####################################################
 # test rig 
 #####################################################
@@ -21,39 +24,79 @@ class P1MeterSIM():
 
     async def sender(self, interval :int = 5):
         """
-        Simulates data being sent from the t1 port to aud in debugging
+        Simulates data being sent from the t1 port to aid in debugging
         this assume that pin rx=2 and tx=5 are connected
         """
         swriter = asyncio.StreamWriter(self.uart, {})
         while True:
             log.info('send telegram')
-            swriter.write(template.format(0,random.random()*100,random.random()*100))
+            telegram = self.fake_message()
+            log.debug('TX telegram message: {}'.format(telegram))
+            swriter.write(telegram)
             await swriter.drain()
             await asyncio.sleep(interval)
 
-template = """/XMX5LGBBFG1012650850
+    def fake_message(self):
+        #  msg = template.format(0,random()*100,random()*100)
+        # msg = crc_known
+        msg = template_short.format(0,random()*100,random()*100)
+        buf = bytearray(msg.replace('\n','\r\n'))
+        crc_computed = crc16(buf) 
+        print( "TX CRC16 buf : {}".format(buf))
+        log.debug("TX computed CRC {0:X}".format(crc_computed))
+        msg = msg + "{0:X}".format(crc_computed) + '\n'
+        return msg
+
+template_short = """/XMX5LGBBFG1012650850
 1-3:0.2.8(42)
-0-0:1.0.0(200909224846S)
-0-0:96.1.1(4530303331303033373235323935313136)
+# 1-0:1.7.0({1:06.3f}*kW)
+# 1-0:2.7.0({2:06.3f}*kW)
 1-0:1.8.1(009248.534*kWh)
-1-0:1.8.2(010048.316*kWh)
-1-0:2.8.1(000136.408*kWh)
-1-0:2.8.2(000330.023*kWh)
-0-0:96.14.0(0002)
-1-0:1.7.0({1:06.3f}*kW)
-1-0:2.7.0({2:06.3f}*kW)
-0-0:96.7.21(00001)
-0-0:96.7.9(00000)
-1-0:99.97.0(0)(0-0:96.7.19)
-1-0:32.32.0(00000)
-1-0:32.36.0(00000)
-0-0:96.13.1()
-0-0:96.13.0()
-0-1:24.1.0(003)
-0-1:96.1.0(4730303332353631323831383834363136)
 0-1:24.2.1(200909220000S)(05907.828*m3)
-!A7B3
-"""
+!"""
+
+
+
+
+# Known CRC 29ED
+crc_known=(   "/KFM5KAIFA-METER\n"
+        "\n"
+        "1-3:0.2.8(42)\n"
+        "0-0:1.0.0(170124213128W)\n"
+        "0-0:96.1.1(4530303236303030303234343934333135)\n"
+        "1-0:1.8.1(000306.946*kWh)\n"
+        "1-0:1.8.2(000210.088*kWh)\n"
+        "1-0:2.8.1(000000.000*kWh)\n"
+        "1-0:2.8.2(000000.000*kWh)\n"
+        "0-0:96.14.0(0001)\n"
+        "1-0:1.7.0(02.793*kW)\n"
+        "1-0:2.7.0(00.000*kW)\n"
+        "0-0:96.7.21(00001)\n"
+        "0-0:96.7.9(00001)\n"
+        "1-0:99.97.0(1)(0-0:96.7.19)(000101000006W)(2147483647*s)\n"
+        "1-0:32.32.0(00000)\n"
+        "1-0:52.32.0(00000)\n"
+        "1-0:72.32.0(00000)\n"
+        "1-0:32.36.0(00000)\n"
+        "1-0:52.36.0(00000)\n"
+        "1-0:72.36.0(00000)\n"
+        "0-0:96.13.1()\n"
+        "0-0:96.13.0()\n"
+        "1-0:31.7.0(003*A)\n"
+        "1-0:51.7.0(005*A)\n"
+        "1-0:71.7.0(005*A)\n"
+        "1-0:21.7.0(00.503*kW)\n"
+        "1-0:41.7.0(01.100*kW)\n"
+        "1-0:61.7.0(01.190*kW)\n"
+        "1-0:22.7.0(00.000*kW)\n"
+        "1-0:42.7.0(00.000*kW)\n"
+        "1-0:62.7.0(00.000*kW)\n"
+        "0-1:24.1.0(003)\n"
+        "0-1:96.1.0(4730303331303033333738373931363136)\n"
+        "0-1:24.2.1(170124210000W)(00671.790*m3)\n"
+        "!"
+    )
+
 
 
 # telegram = """/XMX5LGBBFG1012650850
