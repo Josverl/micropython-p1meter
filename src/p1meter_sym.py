@@ -7,7 +7,7 @@ from machine import UART
 import lib.logging as logging
 # Logging
 log = logging.getLogger('SIMULATION')
-logging.basicConfig(level=logging.INFO)
+# logging.basicConfig(level=logging.INFO)
 #####################################################
 # test rig 
 #####################################################
@@ -32,34 +32,34 @@ class P1MeterSIM():
             log.info('send telegram')
             telegram = self.fake_message()
             log.debug('TX telegram message: {}'.format(telegram))
+            # todo: split in lines / chunck to prevent overflowing the buffer while testing ?
             swriter.write(telegram)
             await swriter.drain()
             await asyncio.sleep(interval)
 
     def fake_message(self):
-        #  msg = template.format(0,random()*100,random()*100)
-        # msg = crc_known
-        msg = template_short.format(0,random()*100,random()*100)
+        # Pick a template
+
+        msg = meter1
+        # msg = meter2
+
+        msg = msg.format(0,random()*100,random()*100)
         buf = bytearray(msg.replace('\n','\r\n'))
-        crc_computed = crc16(buf) 
-        print( "TX CRC16 buf : {}".format(buf))
-        log.debug("TX computed CRC {0:X}".format(crc_computed))
-        msg = msg + "{0:X}".format(crc_computed) + '\n'
+        crc_computed = "{0:0X}".format(crc16(buf))
+        log.debug("TX CRC16 buf : {}".format(buf))
+        log.debug("TX computed CRC {0}".format(crc_computed))
+        msg = msg + "{0}".format(crc_computed) + '\n'
         return msg
 
-template_short = """/XMX5LGBBFG1012650850
+meter1 = """/XMX5LGBBFG1012650850
 1-3:0.2.8(42)
-# 1-0:1.7.0({1:06.3f}*kW)
-# 1-0:2.7.0({2:06.3f}*kW)
+1-0:1.7.0({1:06.3f}*kW)
+1-0:2.7.0({2:06.3f}*kW)
 1-0:1.8.1(009248.534*kWh)
 0-1:24.2.1(200909220000S)(05907.828*m3)
 !"""
 
-
-
-
-# Known CRC 29ED
-crc_known=(   "/KFM5KAIFA-METER\n"
+meter2=(   "/KFM5KAIFA-METER\n"
         "\n"
         "1-3:0.2.8(42)\n"
         "0-0:1.0.0(170124213128W)\n"
@@ -71,6 +71,8 @@ crc_known=(   "/KFM5KAIFA-METER\n"
         "0-0:96.14.0(0001)\n"
         "1-0:1.7.0(02.793*kW)\n"
         "1-0:2.7.0(00.000*kW)\n"
+        "1-0:1.7.0({1:06.3f}*kW)\n"
+        "1-0:2.7.0({2:06.3f}*kW)\n"     
         "0-0:96.7.21(00001)\n"
         "0-0:96.7.9(00001)\n"
         "1-0:99.97.0(1)(0-0:96.7.19)(000101000006W)(2147483647*s)\n"
