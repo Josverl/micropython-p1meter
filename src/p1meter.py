@@ -1,11 +1,10 @@
-import binascii
-import uasyncio as asyncio
+import logging
 from machine import UART
 import ure as re
-import lib.logging as logging
-import ujson as json #used for deepcopy op dict 
+import ujson as json #used for deepcopy op dict
+import uasyncio as asyncio
 from mqttclient import publish_readings
-from utilities import crc16
+from utilities import crc16, replace_codes
 
 # Logging
 log = logging.getLogger('p1meter')
@@ -26,11 +25,11 @@ class P1Meter():
                             txbuf=2048, rxbuf=2048)                     # larger buffer for testing and stability
         self.last = []
         self.message = b''
-        
+
     async def receive(self):
         "Receive telegrams from the p1 meter and send them once recieved"
         sreader = asyncio.StreamReader(self.uart)
-        #start with an empty telegram, explicit to avoid references 
+        #start with an empty telegram, explicit to avoid references
         empty = {'header': '', 'data': [],  'footer': ''}
         tele = dictcopy(empty)
         while True:
@@ -57,7 +56,7 @@ class P1Meter():
 
                 elif line != "--noise--":
                     tele['data'].append(line)
-                    # add to message 
+                    # add to message
                     self.message+=line
 
 # TODO: HIERNA SOMS EEN FOUT BY FOUTE CRC ? GEKLOIO MET DRAADJE
@@ -69,7 +68,7 @@ class P1Meter():
 # TypeError: can't convert 'str' object to bytes implicitly
     def crc_ok(self, tele:dict)-> bool:
         #run the CRC
-        try: 
+        try:
             buf = bytearray(self.message.replace('\n','\r\n'))
             log.debug( "buf: {}".format(buf))
             crc_computed = "{0:0X}".format(crc16(buf))
@@ -84,17 +83,16 @@ class P1Meter():
             return False
 
     async def process(self, tele:dict):
-        # check CRC 
-        if( self.crc_ok(tele) == False):
+        # check CRC
+        if not self.crc_ok(tele) :
             return
-        # what has changed 
+        # what has changed since last time ?
         newdata= set(tele['data']) - set(self.last)
-        self.last = tele['data'].copy()
 
         readings = []
         for line in newdata:
             # split data into readings
-            out = re.match('(.*?)\((.*)\)', line)
+            out = re.match('(.*?)\((.*)\)', line)           #pylint: disable=anomalous-backslash-in-string
             if out:
                 lineinfo = {'meter': out.group(1), 'reading':None, 'unit': None}
 
@@ -104,9 +102,21 @@ class P1Meter():
                     lineinfo['unit'] = reading[1]
                 else:
                     lineinfo['reading'] = reading[0]
+                # a few meters have compound content, that remain seperated by `)(`
+                # split and use  only the last section (ie gas meter reading)
+                lineinfo['reading']=lineinfo['reading'].split(')(')[-1]
+
                 log.debug(lineinfo)
                 readings.append(lineinfo )
-        print("readings:" , readings)
+        # replace codes for topics
+        reading = replace_codes(readings)
 
-        await publish_readings(readings)
+        log.debug("readings: {}".format(readings))
+
+
+
+        # todo: add timeout ?
+        if await publish_readings(readings):
+            # only safe last of publish was succesfull
+            self.last = tele['data'].copy()
 

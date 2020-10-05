@@ -2,17 +2,14 @@
 # MQTT Stuff
 #####################################################
 
-from micropython import const
-import time
+import logging
 import ubinascii
 import machine
-from umqtt.simple import MQTTClient, MQTTException
-from machine import Pin
 import network
-import logging
-from wifi import wlan
-import uasyncio as asyncio
 import ujson as json
+import uasyncio as asyncio
+from umqtt.simple import MQTTClient, MQTTException
+from wifi import wlan
 
 from config import broker , publish_as_json
 
@@ -29,18 +26,18 @@ async def ensure_mqtt_connected(broker = broker):
     #todo: refactor to class to get rid of global
     global mqtt_client
 
-    #todo: WaitFor / sync / semafore Wifi connected 
-    # also try/check for OSError: 118 when connecting, to avoid breaking the loop 
+    #todo: WaitFor / sync / semafore Wifi connected
+    # also try/check for OSError: 118 when connecting, to avoid breaking the loop
     # repro: machine.reset()
     while True:
-        if mqtt_client == None:
+        if mqtt_client is None:
             log.info("create mqtt client {0}".format(broker['server']))
             mqtt_client  = MQTTClient(CLIENT_ID, broker['server'] , user=broker['user'], password=broker['password'])
-        if mqtt_client.sock == None:
+        if mqtt_client.sock is None:
             log.warning('need to start mqqt client')
             # but only if the adapter has got an IP assigned // DHCP
             if wlan.status() == network.STAT_GOT_IP:
-                try: 
+                try:
                     log.info("connecting to mqtt server {0}".format(broker['server']))
                     r = mqtt_client.connect()
                     log.info("Connected")
@@ -49,15 +46,14 @@ async def ensure_mqtt_connected(broker = broker):
                     log.error(e)
                     # [Errno 104] ECONNRESET
                     # server reset : so possibly:
-                    # - incorrect password 
-                    # - network blocked 
-                    pass
+                    # - incorrect password
+                    # - network blocked
             else:
                 log.warning('network not ready')
-        # check 
+        # check
         await asyncio.sleep(10)
 
-# incorrect password 
+# incorrect password
 # INFO:mqttclient:connecting to mqtt server 192.168.1.99
 # Traceback (most recent call last):
 #   File "uasyncio/core.py", line 1, in run_until_complete
@@ -68,26 +64,28 @@ async def ensure_mqtt_connected(broker = broker):
 #####################################################
 #
 #####################################################
-async def publish_readings(readings: list):
+async def publish_readings(readings: list) -> bool:
     log.info("considering {} meter readings for mqtt publication".format(len(readings)))
-
+    r = True
     if publish_as_json:
-        #write readings as json 
+        #write readings as json
         topic = TOPIC + b"/json"
         try:
-            mqtt_client.publish(topic, json.dumps(readings)) 
-        except BaseException as error:  
+            mqtt_client.publish(topic, json.dumps(readings))
+        except BaseException as error:
             log.error("Error: sending json to MQTT : {}".format(error) )
-            #todo: flag reinit of MQTT client 
+            r = False
+            #todo: flag reinit of MQTT client
 
-    #write readings 1 by one 
+    #write readings 1 by one
     for meter in readings:
         topic = TOPIC + b"/"+ meter['meter'].encode()
         try:
-            mqtt_client.publish(topic, meter['reading']) 
-        except BaseException as error:  
+            mqtt_client.publish(topic, meter['reading'])
+        except BaseException as error:
             log.error("Error: sending {} to MQTT : {}".format(topic, error) )
+            r = False
             break
-            #todo: flag reinit of MQTT client 
-    return
+            #todo: flag reinit of MQTT client
+    return r
 
