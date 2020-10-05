@@ -19,8 +19,11 @@ class P1Meter():
     P1 meter to take readings from a Dutch electricity meter and publish them on mqtt for consumption by homeassistant
     """
     def __init__(self, rx :int ,tx :int):
-        #init port for recieving 115200 Baud 8N1 using inverted polarity in RX/TX 
-        self.uart = UART(1, rx=rx, tx=tx, baudrate=115200,  bits=8, parity=None, stop=1 , invert=UART.INV_RX | UART.INV_TX)
+        # init port for recieving 115200 Baud 8N1 using inverted polarity in RX/TX
+        self.uart = UART(   1, rx=rx, tx=tx,
+                            baudrate=115200,  bits=8, parity=None,
+                            stop=1 , invert=UART.INV_RX | UART.INV_TX,
+                            txbuf=2048, rxbuf=2048)                     # larger buffer for testing and stability
         self.last = []
         self.message = b''
         
