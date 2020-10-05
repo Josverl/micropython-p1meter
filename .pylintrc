@@ -1,7 +1,6 @@
 [MASTER]
 # Loaded Stubs:  esp32-micropython-1.12.0 
-init-hook='import sys;sys.path.insert(1, ".micropy\BradenM-micropy-stubs-9569403\frozen");sys.path.insert(1, ".micropy\BradenM-micropy-stubs-452a204\frozen");sys.path.insert(1, ".micropy\BradenM-micropy-stubs-9569403\stubs");sys.path.insert(1, ".micropy\esp32_p1_meter");'
-init-hook='import sys;sys.path[1:1] = ["src\lib", ".micropy\BradenM-micropy-stubs-9569403\frozen", ".micropy\BradenM-micropy-stubs-452a204\frozen", ".micropy\BradenM-micropy-stubs-9569403\stubs", ".micropy\esp32_p1_tester");'
+init-hook='import sys;sys.path[1:1] = ["src\lib", ".micropy\BradenM-micropy-stubs-9569403\frozen", ".micropy\BradenM-micropy-stubs-452a204\frozen", ".micropy\BradenM-micropy-stubs-9569403\stubs", ".micropy\esp32_p1_tester"];'
 
 [MESSAGES CONTROL]
 # Only show warnings with the listed confidence levels. Leave empty to show
