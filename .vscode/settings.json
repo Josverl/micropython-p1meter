@@ -1,12 +1,30 @@
 {
     "python.linting.enabled": true,
     "python.jediEnabled": false,
-
-    // Loaded Stubs:  esp32-micropython-1.12.0 
-    "python.autoComplete.extraPaths": [".micropy\\BradenM-micropy-stubs-9569403\\frozen", ".micropy\\BradenM-micropy-stubs-452a204\\frozen", ".micropy\\BradenM-micropy-stubs-9569403\\stubs", ".micropy\\esp32_p1_tester"],
-    "python.autoComplete.typeshedPaths":  [".micropy\\BradenM-micropy-stubs-9569403\\frozen", ".micropy\\BradenM-micropy-stubs-452a204\\frozen", ".micropy\\BradenM-micropy-stubs-9569403\\stubs", ".micropy\\esp32_p1_tester"],
-    "python.analysis.typeshedPaths":  [".micropy\\BradenM-micropy-stubs-9569403\\frozen", ".micropy\\BradenM-micropy-stubs-452a204\\frozen", ".micropy\\BradenM-micropy-stubs-9569403\\stubs", ".micropy\\esp32_p1_tester"],
-
+    "python.autoComplete.extraPaths": [
+        "src/lib",
+        ".micropy\\BradenM-micropy-stubs-9569403\\frozen",
+        ".micropy\\BradenM-micropy-stubs-452a204\\frozen",
+        ".micropy\\BradenM-micropy-stubs-9569403\\stubs",
+        ".micropy\\esp32_p1_meter"
+    ],
+    "python.autoComplete.typeshedPaths": [
+        ".micropy\\BradenM-micropy-stubs-9569403\\frozen",
+        ".micropy\\BradenM-micropy-stubs-452a204\\frozen",
+        ".micropy\\BradenM-micropy-stubs-9569403\\stubs",
+        ".micropy\\esp32_p1_meter"
+    ],
+    "python.analysis.typeshedPaths": [
+        ".micropy\\BradenM-micropy-stubs-9569403\\frozen",
+        ".micropy\\BradenM-micropy-stubs-452a204\\frozen",
+        ".micropy\\BradenM-micropy-stubs-9569403\\stubs",
+        ".micropy\\esp32_p1_meter"
+    ],
     "python.linting.pylintEnabled": true,
-    "python.languageServer": "Microsoft"
+    "python.languageServer": "Microsoft",
+    "restructuredtext.confPath": "",
+    "files.associations": {
+        "*.yaml": "home-assistant"
+    },
+    "python.linting.mypyCategorySeverity.error": "Warning"
 }
