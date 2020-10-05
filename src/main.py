@@ -46,7 +46,7 @@ async def main():
     if RUN_SIM:
         # SIMULATION: simulate meter input on this machine
         sim = P1MeterSIM(p1_meter.uart)
-        asyncio.create_task(sim.sender())
+        asyncio.create_task(sim.sender(interval=1))
     asyncio.create_task(p1_meter.receive())
     while True:
         await asyncio.sleep(1)
