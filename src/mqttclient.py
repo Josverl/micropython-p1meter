@@ -6,7 +6,7 @@ from micropython import const
 import time
 import ubinascii
 import machine
-from umqtt.simple import MQTTClient
+from umqtt.simple import MQTTClient, MQTTException
 from machine import Pin
 import network
 import logging
@@ -45,15 +45,25 @@ async def ensure_mqtt_connected(broker = broker):
                     r = mqtt_client.connect()
                     log.info("Connected")
                     log.info("Connected :{}".format(r))
-                except OSError as e:
+                except (MQTTException, OSError)  as e:
                     log.error(e)
+                    # [Errno 104] ECONNRESET
+                    # server reset : so possibly:
+                    # - incorrect password 
+                    # - network blocked 
                     pass
             else:
                 log.warning('network not ready')
         # check 
         await asyncio.sleep(10)
 
-
+# incorrect password 
+# INFO:mqttclient:connecting to mqtt server 192.168.1.99
+# Traceback (most recent call last):
+#   File "uasyncio/core.py", line 1, in run_until_complete
+#   File "mqttclient.py", line 45, in ensure_mqtt_connected
+#   File "umqtt/simple.py", line 99, in connect
+# MQTTException: 5
 
 #####################################################
 #
@@ -67,7 +77,7 @@ async def publish_readings(readings: list):
         try:
             mqtt_client.publish(topic, json.dumps(readings)) 
         except BaseException as error:  
-            log.error("Error: sending to MQTT : {}".format(error) )
+            log.error("Error: sending json to MQTT : {}".format(error) )
             #todo: flag reinit of MQTT client 
 
     #write readings 1 by one 
@@ -76,7 +86,7 @@ async def publish_readings(readings: list):
         try:
             mqtt_client.publish(topic, meter['reading']) 
         except BaseException as error:  
-            log.error("Error: sending to MQTT : {}".format(error) )
+            log.error("Error: sending {} to MQTT : {}".format(topic, error) )
             break
             #todo: flag reinit of MQTT client 
     return
