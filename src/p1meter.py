@@ -2,7 +2,7 @@ import binascii
 import uasyncio as asyncio
 from machine import UART
 import ure as re
-import logging
+import lib.logging as logging
 import ujson as json #used for deepcopy op dict 
 from mqttclient import publish_readings
 from utilities import crc16
@@ -57,11 +57,6 @@ class P1Meter():
                     # add to message 
                     self.message+=line
 
-    async def process(self, tele:dict):
-        # todo: -check CRC 
-
-        #run the CRC
-        log.debug( "message: {}".format(self.message))  
 # TODO: HIERNA SOMS EEN FOUT BY FOUTE CRC ? GEKLOIO MET DRAADJE
 # DEBUG:p1meter:message: b'1-3:0.2.8(42)\n# 1-0:1.7.0(35.277*kW)\n# 1-0:2.7.0(62.976*kW)\n1-0:1.8.1(009248.534*kWh)\n0-1:24.2.1(200909220000S)(05907.828*m3)\n!'
 # Traceback (most recent call last):
@@ -69,37 +64,46 @@ class P1Meter():
 #   File "p1meter.py", line 52, in receive
 #   File "p1meter.py", line 65, in process
 # TypeError: can't convert 'str' object to bytes implicitly
-        buf = bytearray(self.message.replace('\n','\r\n'))
-        log.debug( "buf: {}".format(buf))
+    def crc_ok(self, tele:dict)-> bool:
+        #run the CRC
+        try: 
+            buf = bytearray(self.message.replace('\n','\r\n'))
+            log.debug( "buf: {}".format(buf))
+            crc_computed = "{0:0X}".format(crc16(buf))
+            log.debug("RX computed CRC {0}".format(crc_computed))
+            if tele['footer'] == "!{0}\n".format(crc_computed):
+                return True
+            else:
+                log.warning("CRC Failed, computed: {0} != received {1}!!".format(crc_computed, tele['footer'][1:5]))
+                return False
+        except OSError as e:
+            log.error("Error during CRC check: {}".format(e))
+            return False
 
-        crc_computed = crc16(buf) 
+    async def process(self, tele:dict):
+        # check CRC 
+        if( self.crc_ok(tele) == False):
+            return
+        # what has changed 
+        newdata= set(tele['data']) - set(self.last)
+        self.last = tele['data'].copy()
 
-        log.debug("RX computed CRC {0:X}".format(crc_computed))
-        if tele['footer'] == "!{0:X}\n".format(crc_computed):
-            log.info("CRC OK !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
-   
-        # # what has changed 
-        # newdata= set(tele['data']) - set(self.last)
+        readings = []
+        for line in newdata:
+            # split data into readings
+            out = re.match('(.*?)\((.*)\)', line)
+            if out:
+                lineinfo = {'meter': out.group(1), 'reading':None, 'unit': None}
 
-        # self.last = tele['data'].copy()
+                reading = out.group(2).split('*')
+                if len(reading) == 2:
+                    lineinfo['reading'] = reading[0]
+                    lineinfo['unit'] = reading[1]
+                else:
+                    lineinfo['reading'] = reading[0]
+                log.debug(lineinfo)
+                readings.append(lineinfo )
+        print("readings:" , readings)
 
-        # readings = []
-        # for line in newdata:
-        #     # split data into readings
-        #     out = re.match('(.*?)\((.*)\)', line)
-        #     if out:
-        #         lineinfo = {'meter': out.group(1), 'reading':None, 'unit': None}
-
-        #         reading = out.group(2).split('*')
-        #         if len(reading) == 2:
-        #             lineinfo['reading'] = reading[0]
-        #             lineinfo['unit'] = reading[1]
-        #         else:
-        #             lineinfo['reading'] = reading[0]
-        #         log.debug(lineinfo)
-        #         readings.append(lineinfo )
-        
-        # print("readings:" , readings)
-
-        # await publish_readings(readings)
+        await publish_readings(readings)
 
