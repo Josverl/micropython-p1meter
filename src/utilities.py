@@ -1,5 +1,7 @@
 "16 bit Cyclic redundancy check (CRC)"
+# from lib.timed_func import timed_function
 
+# @timed_function
 def crc16(buf :bytearray) -> uint16 :
     """CRC-16-ANSI calculated over the characters in the data message using the polynomial: x16 + x15 + x2 + 1
 
