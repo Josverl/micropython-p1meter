@@ -46,7 +46,7 @@ codetable = (
     ("1-0:2.8.2"            , "production_high_tarif"),
 
     ("1-0:1.7.0.*"          , "actual_consumption"),
-    ("1-0:2.7.0.*"          , "actual_received"),
+    ("1-0:2.7.0.*"          , "actual_produced"),
 
     ("1-0:21.7.0"           , "instant_power_usage/l1"),
     ("1-0:41.7.0"           , "instant_power_usage/l2"),
