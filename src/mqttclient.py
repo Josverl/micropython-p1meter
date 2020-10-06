@@ -65,13 +65,14 @@ async def ensure_mqtt_connected(broker = broker):
 #
 #####################################################
 async def publish_readings(readings: list) -> bool:
-    log.info("considering {} meter readings for mqtt publication".format(len(readings)))
     if publish_as_json:
+        log.debug("publish {} meter readings as json".format(len(readings)))
         #write readings as json
         topic = TOPIC + b"/json"
         if not publish_one(topic, json.dumps(readings)):
             return False
 
+    log.info("publish {} meter readings".format(len(readings)))
     #write readings 1 by one
     for meter in readings:
         topic = TOPIC + b"/"+ meter['meter'].encode()

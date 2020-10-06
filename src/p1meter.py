@@ -17,7 +17,7 @@ def dictcopy(d : dict):
     return json.loads(json.dumps(d))
 
 
-@timed_function
+# @timed_function
 def replace_codes(readings :list)-> list :
     "replace the codes by their topic as defined in the codetable"
     for reading in readings:
