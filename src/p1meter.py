@@ -1,10 +1,13 @@
 import logging
-from machine import UART
-import ure as re
 import ujson as json #used for deepcopy op dict
+import ure as re
+from machine import UART
 import uasyncio as asyncio
+from timed_func import timed_function
+
 from mqttclient import publish_readings
-from utilities import crc16, replace_codes
+from utilities import crc16
+from config import codetable
 
 # Logging
 log = logging.getLogger('p1meter')
@@ -12,6 +15,18 @@ log = logging.getLogger('p1meter')
 def dictcopy(d : dict):
     "returns a copy of a dict using copy though json"
     return json.loads(json.dumps(d))
+
+
+@timed_function
+def replace_codes(readings :list)-> list :
+    "replace the codes by their topic as defined in the codetable"
+    for reading in readings:
+        for code in codetable:
+            if re.match(code[0],reading['meter']):
+                reading['meter'] = re.sub(code[0], code[1], reading['meter'])
+                log.debug("{} --> {}".format(code[0],reading['meter'] ))
+                break
+    return readings
 
 class P1Meter():
     """
