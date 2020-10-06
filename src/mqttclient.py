@@ -66,26 +66,32 @@ async def ensure_mqtt_connected(broker = broker):
 #####################################################
 async def publish_readings(readings: list) -> bool:
     log.info("considering {} meter readings for mqtt publication".format(len(readings)))
-    r = True
     if publish_as_json:
         #write readings as json
         topic = TOPIC + b"/json"
-        try:
-            mqtt_client.publish(topic, json.dumps(readings))
-        except BaseException as error:
-            log.error("Error: sending json to MQTT : {}".format(error) )
-            r = False
-            #todo: flag reinit of MQTT client
+        if not publish_one(topic, json.dumps(readings)):
+            return False
 
     #write readings 1 by one
     for meter in readings:
         topic = TOPIC + b"/"+ meter['meter'].encode()
-        try:
-            mqtt_client.publish(topic, meter['reading'])
-        except BaseException as error:
-            log.error("Error: sending {} to MQTT : {}".format(topic, error) )
-            r = False
-            break
-            #todo: flag reinit of MQTT client
-    return r
+        if not publish_one(topic, meter['reading']):
+            return False
+    return True
 
+def publish_one(topic, value) -> bool:
+    global mqtt_client
+    r = True
+    try:
+        mqtt_client.publish(topic, value)
+    except BaseException as error:
+        log.error("Error: sending json to MQTT : {}".format(error) )
+        r = False
+        try:
+            mqtt_client.disconnect()
+        except BaseException as error:
+            log.error("Error: while disconnecting MQTT : {}".format(error) )
+        finally:
+            # flag reinit of MQTT client
+            mqtt_client = None
+    return r
