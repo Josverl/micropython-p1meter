@@ -1,7 +1,7 @@
 # pylint: disable=trailing-whitespace
 
 import logging
-from random import random
+import random
 from machine import UART
 import uasyncio as asyncio
 from utilities import crc16
@@ -43,7 +43,10 @@ class P1MeterSIM():
         #msg = meter1
         msg = meter3
 
-        msg = msg.format(0,random()*100,random()*100)
+        u = random.randint(-1000,1000) /100
+        msg = msg.format(0,max(u, 0), -1*min(u,0))
+
+
         buf = bytearray(msg.replace('\n','\r\n'))
         crc_computed = "{0:0X}".format(crc16(buf))
         log.debug("TX CRC16 buf : {}".format(buf))
@@ -137,8 +140,8 @@ meter3 = """/XMX5LGBBFG1012463817
 1-0:2.8.1(000000.000*kWh)
 1-0:2.8.2(000000.000*kWh)
 0-0:96.14.0(0001)
-1-0:1.7.0(00.378*kW)
-1-0:2.7.0(00.000*kW)
+1-0:1.7.0({1:06.3f}*kW)
+1-0:2.7.0({2:06.3f}*kW)
 0-0:96.7.21(00003)
 0-0:96.7.9(00001)
 1-0:99.97.0(1)(0-0:96.7.19)(170214081346W)(0000006334*s)
