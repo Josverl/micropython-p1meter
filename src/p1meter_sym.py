@@ -5,7 +5,7 @@ import random
 from machine import UART
 import uasyncio as asyncio
 from utilities import crc16
-
+from mqttclient import publish_one
 # Logging
 log = logging.getLogger('SIMULATION')
 # logging.basicConfig(level=logging.INFO)
@@ -22,6 +22,7 @@ class P1MeterSIM():
         # do not re-init port for sim
         self.uart = uart
         # self.telegram = template
+        self.messages = 0
 
     async def sender(self, interval :int = 5):
         """
@@ -35,6 +36,9 @@ class P1MeterSIM():
             log.debug('TX telegram message: {}'.format(telegram))
             swriter.write(telegram)
             await swriter.drain()
+            self.messages += 1
+            await asyncio.sleep_ms(1)
+            publish_one("p1_meter/sensor/simulator", str(self.messages))
             await asyncio.sleep(interval)
 
     def fake_message(self):
