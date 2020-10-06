@@ -39,7 +39,7 @@ class P1Meter():
                             stop=1 , invert=UART.INV_RX | UART.INV_TX,
                             txbuf=2048, rxbuf=2048)                     # larger buffer for testing and stability
         self.last = []
-        self.message = b''
+        self.message = ''
 
     async def receive(self):
         "Receive telegrams from the p1 meter and send them once recieved"
@@ -67,39 +67,35 @@ class P1Meter():
                     tele['footer'] = line
                     self.message+="!"
                     await self.process(tele)
-                    self.message=b''
+                    self.message=''
 
                 elif line != "--noise--":
                     tele['data'].append(line)
                     # add to message
                     self.message+=line
 
-# TODO: HIERNA SOMS EEN FOUT BY FOUTE CRC ? GEKLOIO MET DRAADJE
-# DEBUG:p1meter:message: b'1-3:0.2.8(42)\n# 1-0:1.7.0(35.277*kW)\n# 1-0:2.7.0(62.976*kW)\n1-0:1.8.1(009248.534*kWh)\n0-1:24.2.1(200909220000S)(05907.828*m3)\n!'
-# Traceback (most recent call last):
-#   File "uasyncio/core.py", line 1, in run_until_complete
-#   File "p1meter.py", line 52, in receive
-#   File "p1meter.py", line 65, in process
-# TypeError: can't convert 'str' object to bytes implicitly
-    def crc_ok(self, tele:dict)-> bool:
-        #run the CRC
+    def crc_ok(self, tele:dict = None)-> bool:
+        "run CRC-16 check on the recieved telegram"
+        # todo: just pass the expected CRC16 rather than the entire telegram
+        if not tele or not self.message:
+            return False
         try:
-            buf = bytearray(self.message.replace('\n','\r\n'))
+            buf = self.message.replace('\n','\r\n').encode()
             log.debug( "buf: {}".format(buf))
             crc_computed = "{0:0X}".format(crc16(buf))
             log.debug("RX computed CRC {0}".format(crc_computed))
             if tele['footer'] == "!{0}\n".format(crc_computed):
                 return True
             else:
-                log.warning("CRC Failed, computed: {0} != received {1}!!".format(crc_computed, tele['footer'][1:5]))
+                log.warning("CRC Failed, computed: {0} != received {1}!!".format(str(crc_computed), str(tele['footer'][1:5])))
                 return False
-        except OSError as e:
+        except (OSError, TypeError) as e:
             log.error("Error during CRC check: {}".format(e))
             return False
 
     async def process(self, tele:dict):
         # check CRC
-        if not self.crc_ok(tele) :
+        if not self.crc_ok( tele, ) :
             return
         # what has changed since last time ?
         newdata= set(tele['data']) - set(self.last)
@@ -132,6 +128,6 @@ class P1Meter():
 
         # todo: add timeout ?
         if await publish_readings(readings):
-            # only safe last of publish was succesfull
+            # only safe last if mqtt publish was ok
             self.last = tele['data'].copy()
 
