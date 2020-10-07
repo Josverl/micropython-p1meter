@@ -1,5 +1,6 @@
 "16 bit Cyclic redundancy check (CRC)"
 from uctypes import UINT16
+import esp32
 
 # @timed_function
 def crc16(buf :bytearray) -> UINT16 :
@@ -19,5 +20,13 @@ def crc16(buf :bytearray) -> UINT16 :
                 crc >>= 1
     return crc
 
-
+def cpu_temp()->float:
+    "read internal ESP32 CPU temperature in Celsius"
+    try:
+        tf = esp32.raw_temperature()
+        tc = (tf-32.0)/1.8
+    except:
+        tc = -1
+    # print("T = {0:4d} deg F or {1:5.1f}  deg C".format(tf,tc))
+    return tc
 
