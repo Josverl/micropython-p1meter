@@ -52,7 +52,7 @@ class P1MeterSIM():
 
 
         buf = bytearray(msg.replace('\n','\r\n'))
-        crc_computed = "{0:0X}".format(crc16(buf))
+        crc_computed = "{0:04X}".format(crc16(buf))
         # log.debug("TX CRC16 buf : {}".format(buf))
         log.debug("TX computed CRC {0}".format(crc_computed))
         msg = msg + "{0}".format(crc_computed) + '\n'

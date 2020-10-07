@@ -86,7 +86,7 @@ class P1Meter():
         try:
             buf = self.message.replace('\n','\r\n').encode()
             log.debug( "buf: {}".format(buf))
-            crc_computed = "{0:0X}".format(crc16(buf))
+            crc_computed = "{0:04X}".format(crc16(buf))
             log.debug("RX computed CRC {0}".format(crc_computed))
             if tele['footer'] == "!{0}\n".format(crc_computed):
                 return True
