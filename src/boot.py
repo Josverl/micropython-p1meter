@@ -43,7 +43,8 @@ logging.getLogger().addHandler(LogFormatter())
 # WiFI: no need to init wifi,it is established from async task
 
 #Debug 
-DEBUG = True
+DEBUG = False
+#DEBUG = True
 if DEBUG:
     # esp.osdebug(0)          # redirect vendor O/S debugging messages to UART(0)
     # esp.osdebug(0, esp.LOG_ERROR)

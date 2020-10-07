@@ -19,7 +19,7 @@ class MQTTClient2(object):
     docstring
     """
     def __init__(self):
-        # TODO: broker is imported directly 
+        # TODO: broker is imported directly
         self.mqtt_client = None
         self.server = broker['server']
         self.user = broker['user']
@@ -27,26 +27,26 @@ class MQTTClient2(object):
 
     def healthy(self) -> bool:
         "is the client healthy?"
-        ok = True
+        state = True
         try: 
             if not self.mqtt_client:
                 log.debug('mqtt_client = None')
-                ok = False
+                state = False
             elif self.mqtt_client.sock is None:
                 log.debug('mqtt_client.sock = None')
-                ok = False
+                state = False
             if wlan.status() != network.STAT_GOT_IP:
                 log.debug('wlan.status != GOT_IP')
-                ok = False
+                state = False
             # ? do server ping ?
         except (OSError, MQTTException) as e:
             log.debug('error during health check: {}'.format(e))
-            ok = False
+            state = False
 
-        if not ok:
+        if not state:
             log.warning('mqtt not healthy')
             # todo: trigger reconnect ?
-        return ok
+        return state
     
     def disconnect(self):
         "disconnect and close"
@@ -80,7 +80,7 @@ class MQTTClient2(object):
                 if wlan.status() == network.STAT_GOT_IP:
                     try:
                         log.info("connecting to mqtt server {0}".format(self.server))
-                        r = self.mqtt_client.connect()
+                        self.mqtt_client.connect()
                         log.info("Connected")
                     except (MQTTException, OSError)  as e:
                         log.error(e)

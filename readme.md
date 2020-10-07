@@ -13,34 +13,33 @@ functional:
  - [ ] build case for meter 
  - [ ] periodically send all readings ( per minute / hour ? configurable)
  - [ ] also publish the ident from the header 
- - [ ] parse the date-time from the telegram to make it more readable 
- - [ ] add telnet server for remote diag
 
  - [ ] add actionable descriptions to common mqtt connection errors 
  - [ ] prevent / cleanup common mqtt connection errors on initial connect
-
         ERROR:mqttclient:Error: sending json to MQTT : 'NoneType' object has no attribute 'publish'
         ERROR:mqttclient:Error: while disconnecting MQTT : 'NoneType' object has no attribute 'disconnect'
         ERROR:mqttclient:Error: sending json to MQTT : 'NoneType' object has no attribute 'publish'       
         ERROR:mqttclient:Error: while disconnecting MQTT : 'NoneType' object has no attribute 'disconnect'
 
 mqtt client:  
- - [x] detect mqtt issues on sending and disconnect / reconnect
  - [ ] switch to more stable MQTT lib
- - [ ] refactor to class to get rid of global
  - [ ] clear last sent state on mqtt reconnect to force sending all
- - [ ] reconnect quicker
+ - [ ] use wlan.wlan_stable flag to determine network connection
+        - also disconnect / reset mqtt client in that case 
+ - [ ] LOW - reconnect quicker 
  - [ ] ping mqtt server on server connect
  - [ ] ping mqtt server periodically and reconnect on issue 
  - [ ] support TLS/SSL 
-  - [?] add queue of messages to send 
+ - [x] refactor to class to get rid of global
+ - [x] detect mqtt issues on sending and disconnect / reconnect
+ - [?] add queue of messages to send 
 
 
 Test cases : 
  - [ok] restart mqtt server 
  - [ ] wrong password 
- - [] no network connectivity to mqtt broker
- - [] no write permissions on topic
+ - [ ] no network connectivity to mqtt broker
+ - [ ] no write permissions on topic
 
 Stability:
  - [x] CRC16 check
@@ -52,16 +51,21 @@ code quality:
         - [ ] gc
         - [ ] sys
 network:
-- [ ] test / repro network disconnect - re-connect 
-- [ ] more robust network reconnection 
+- 
+- [x] more robust network reconnection 
 - [ ] clear last sent state on network reconnect
+- test cases 
+  - [disable wifi / enable wifi]
+    - [ok] test / repro network disconnect - re-connect 
 
 
 nice to have:
- - [ ] logging formatting with colors 
-      - new logging lib with format options`
+ - [ ] parse the date-time from the telegram to make it more readable 
+ - [ ] add telnet server for remote diag
  - [ ] publish MAC to mqtt to identify different meters
  - [ ] read config from MQTT /p1_meter/sensor/MAC --> root topic : 'p1_meter_2'
+ - [x] logging formatting with colors 
+      - new logging lib with format options`
 
 
 upstream Doc:
