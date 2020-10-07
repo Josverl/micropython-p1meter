@@ -1,6 +1,4 @@
 "16 bit Cyclic redundancy check (CRC)"
-import re
-import logging
 from uctypes import UINT16
 
 # @timed_function
@@ -13,7 +11,7 @@ def crc16(buf :bytearray) -> UINT16 :
     crc = 0x0000
     for c in buf:
         crc ^= c
-        for i in range(8):
+        for i in range(8):          # pylint: disable=unused-variable
             if crc & 0x01:
                 crc >>= 1
                 crc ^= 0xA001
