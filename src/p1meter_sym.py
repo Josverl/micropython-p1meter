@@ -31,9 +31,9 @@ class P1MeterSIM():
         """
         swriter = asyncio.StreamWriter(self.uart, {})
         while True:
-            log.info('send telegram')
+            log.warning('send simulated telegram')
             telegram = self.fake_message()
-            log.debug('TX telegram message: {}'.format(telegram))
+            # TMI log.debug('TX telegram message: {}'.format(telegram))
             swriter.write(telegram)
             await swriter.drain()
             self.messages += 1
@@ -53,7 +53,7 @@ class P1MeterSIM():
 
         buf = bytearray(msg.replace('\n','\r\n'))
         crc_computed = "{0:0X}".format(crc16(buf))
-        log.debug("TX CRC16 buf : {}".format(buf))
+        # log.debug("TX CRC16 buf : {}".format(buf))
         log.debug("TX computed CRC {0}".format(crc_computed))
         msg = msg + "{0}".format(crc_computed) + '\n'
         return msg

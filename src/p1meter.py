@@ -11,6 +11,7 @@ from config import codetable
 
 # Logging
 log = logging.getLogger('p1meter')
+logging.basicConfig(level=logging.DEBUG)
 
 def dictcopy(d : dict):
     "returns a copy of a dict using copy though json"
@@ -19,7 +20,7 @@ def dictcopy(d : dict):
 
 # @timed_function
 def replace_codes(readings :list)-> list :
-    "replace the codes by their topic as defined in the codetable"
+    "replace the OBIS codes by their topic as defined in the codetable"
     for reading in readings:
         for code in codetable:
             if re.match(code[0],reading['meter']):
@@ -33,20 +34,23 @@ class P1Meter():
     P1 meter to take readings from a Dutch electricity meter and publish them on mqtt for consumption by homeassistant
     """
     def __init__(self, rx :int ,tx :int):
-        # init port for recieving 115200 Baud 8N1 using inverted polarity in RX/TX
+        # init port for receiving 115200 Baud 8N1 using inverted polarity in RX/TX
+
         self.uart = UART(   1, rx=rx, tx=tx,
                             baudrate=115200,  bits=8, parity=None,
                             stop=1 , invert=UART.INV_RX | UART.INV_TX,
                             txbuf=2048, rxbuf=2048)                     # larger buffer for testing and stability
+        log.info("setup to receive P1 meter data : {}".format(self.uart))
         self.last = []
         self.message = ''
 
     async def receive(self):
-        "Receive telegrams from the p1 meter and send them once recieved"
+        "Receive telegrams from the p1 meter and send them once received"
         sreader = asyncio.StreamReader(self.uart)
         #start with an empty telegram, explicit to avoid references
         empty = {'header': '', 'data': [],  'footer': ''}
         tele = dictcopy(empty)
+        log.info("listening on UART for P1 meter data")
         while True:
             line = await sreader.readline()
             log.debug("raw: {}".format(line))
@@ -75,7 +79,7 @@ class P1Meter():
                     self.message+=line
 
     def crc_ok(self, tele:dict = None)-> bool:
-        "run CRC-16 check on the recieved telegram"
+        "run CRC-16 check on the received telegram"
         # todo: just pass the expected CRC16 rather than the entire telegram
         if not tele or not self.message:
             return False

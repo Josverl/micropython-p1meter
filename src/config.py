@@ -4,16 +4,21 @@ from micropython import const
 
 # Base SSID to connect to
 homenet = {'SSID': 'IoT', 'password': 'MicroPython'}
+
+#the mqtt broker to connect to
 broker = {'server': '192.168.1.99', 'user': 'sensor', 'password': 'SensorPassport'}
 
-#also publish as json
+# Serial Pins for meter connection
+# TX pin is only used for testing/simulation but needs to be specified
+RX_PIN_NR = const(2)
+TX_PIN_NR = const(5)
+
+# run the simulator for testing (using TX_PIN_NR)
+RUN_SIM = True
+
+#also publish telegram as json
 publish_as_json = False
 
-
-# Serial Pins for meter connection
-RX_PIN_NR = const(2)
-# TX = Only for simulation
-TX_PIN_NR = const(5)
 
 """a list to translate the ... codes into the topic names used to publish to mqtt
 each entry should consist of a 2-tuple
@@ -23,7 +28,7 @@ each entry should consist of a 2-tuple
         ("(\d)-0:1.7.0","actual_consumption\device_\\1")    # regex replacement
 
 Note:
-    For readbility the periods `.` have been used in the regex match strings.
+    For readability the periods `.` have been used in the regex match strings.
     While in the regex syntax the `.` will match any character, this does not cause any issues in practice.
 
     Several codes are specified in the documentation as ending in .255, while in practice this seems optional.
@@ -36,14 +41,14 @@ Note:
 """
 codetable = (
     ("1-3:0.2.8.*"          , "version"),
-    ("0-0:1.0.0.*"          , "date_time"),
+    ("0-0:1.0.0.*"          , "date_time"),                     # ASCII presentation of Time stamp with Year, Month, Day, Hour, Minute, Second, and an indication whether DST is active (X=S) or DST is not active (X=W)
     ("0-1:96.1.0.*"         , "equipment_id/p1_meter"),
     ("0-0:96.14.0.*"        , "tariff_indicator"),
-    ("1-0:1.8.1"            , "consumption_low_tarif"),
-    ("1-0:1.8.2"            , "consumption_high_tarif"),
+    ("1-0:1.8.1"            , "consumption_low_tariff"),
+    ("1-0:1.8.2"            , "consumption_high_tariff"),
 
-    ("1-0:2.8.1"            , "production_low_tarif"),
-    ("1-0:2.8.2"            , "production_high_tarif"),
+    ("1-0:2.8.1"            , "production_low_tariff"),
+    ("1-0:2.8.2"            , "production_high_tariff"),
 
     ("1-0:1.7.0.*"          , "actual_consumption"),
     ("1-0:2.7.0.*"          , "actual_produced"),
@@ -56,7 +61,7 @@ codetable = (
     ("1-0:51.7.0"           , "instant_power_current/l2"),
     ("1-0:71.7.0"           , "instant_power_current/l3"),
 
-    ("0-0:96.14.0"          , "actual_tarif_group"),
+    ("0-0:96.14.0"          , "actual_tariff_group"),
 
     ("0-0:96.7.21"          , "short_power_outages"),
     ("0-0:96.7.9"           , "long_power_outages"),
@@ -64,9 +69,9 @@ codetable = (
     ("1-0:32.32.0"          , "short_power_drops"),
     ("1-0:32.36.0"          , "short_power_peaks"),
 
-    ("1-0:22.7.0.*"         , "instantanious_active_power/l1"),
-    ("1-0:42.7.0.*"         , "instantanious_active_power/l2"),
-    ("1-0:62.7.0.*"         , "instantanious_active_power/l3"),
+    ("1-0:22.7.0.*"         , "instantaneous_active_power/l1"),
+    ("1-0:42.7.0.*"         , "instantaneous_active_power/l2"),
+    ("1-0:62.7.0.*"         , "instantaneous_active_power/l3"),
 
     ("1-0:32.7.0"           , "instant_voltage/l1"),
     ("1-0:52.7.0"           , "instant_voltage/l2"),

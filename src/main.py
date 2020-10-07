@@ -4,15 +4,10 @@ import uasyncio as asyncio
 from p1meter import P1Meter
 import wifi
 from mqttclient import ensure_mqtt_connected, publish_one
-from config import RX_PIN_NR, TX_PIN_NR
-
-
-# run the simulator for testing
-RUN_SIM = True
+from config import RX_PIN_NR, TX_PIN_NR, RUN_SIM
 
 if RUN_SIM:
     from p1meter_sym import P1MeterSIM
-
 
 # Logging
 log = logging.getLogger('main')
@@ -55,7 +50,7 @@ async def main():
     while True:
         await asyncio.sleep(1)
 
-print('python p1 meter is starting up')
+log.info('micropython p1 meter is starting...')
 try:
     asyncio.run(main())
 finally:
