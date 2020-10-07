@@ -26,5 +26,15 @@
     "files.associations": {
         "*.yaml": "home-assistant"
     },
-    "python.linting.mypyCategorySeverity.error": "Warning"
+    "python.linting.mypyCategorySeverity.error": "Warning",
+    "cSpell.words": [
+        "Prereqs",
+        "homenet",
+        "levelno",
+        "mqttclient"
+    ],
+    "cSpell.enableFiletypes": [
+        "!php",
+        "shellscript"
+    ]
 }
