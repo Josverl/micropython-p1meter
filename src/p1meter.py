@@ -3,15 +3,16 @@ import ujson as json #used for deepcopy op dict
 import ure as re
 from machine import UART
 import uasyncio as asyncio
-from timed_func import timed_function
+# from timed_func import timed_function
 
-from mqttclient import publish_readings
+from mqttclient import MQTTClient
 from utilities import crc16
 from config import codetable
 
 # Logging
 log = logging.getLogger('p1meter')
-logging.basicConfig(level=logging.DEBUG)
+#set level no lower than ..... for this log only
+log.level = max( logging.INFO , logging._level)
 
 def dictcopy(d : dict):
     "returns a copy of a dict using copy though json"
@@ -33,7 +34,7 @@ class P1Meter():
     """
     P1 meter to take readings from a Dutch electricity meter and publish them on mqtt for consumption by homeassistant
     """
-    def __init__(self, rx :int ,tx :int):
+    def __init__(self, rx :int ,tx :int,mq_client :MQTTClient2):
         # init port for receiving 115200 Baud 8N1 using inverted polarity in RX/TX
 
         self.uart = UART(   1, rx=rx, tx=tx,
@@ -43,6 +44,7 @@ class P1Meter():
         log.info("setup to receive P1 meter data : {}".format(self.uart))
         self.last = []
         self.message = ''
+        self.mqtt_client = mq_client
 
     async def receive(self):
         "Receive telegrams from the p1 meter and send them once received"
@@ -53,7 +55,7 @@ class P1Meter():
         log.info("listening on UART for P1 meter data")
         while True:
             line = await sreader.readline()
-            log.debug("raw: {}".format(line))
+            # TMI log.debug("raw: {}".format(line))
             if line:
                 # to string
                 try:
@@ -85,7 +87,7 @@ class P1Meter():
             return False
         try:
             buf = self.message.replace('\n','\r\n').encode()
-            log.debug( "buf: {}".format(buf))
+            # TMI log.debug( "buf: {}".format(buf))
             crc_computed = "{0:04X}".format(crc16(buf))
             log.debug("RX computed CRC {0}".format(crc_computed))
             if tele['footer'] == "!{0}\n".format(crc_computed):
@@ -128,10 +130,8 @@ class P1Meter():
 
         log.debug("readings: {}".format(readings))
 
-
-
         # todo: add timeout ?
-        if await publish_readings(readings):
+        if await self.mqtt_client.publish_readings(readings):
             # only safe last if mqtt publish was ok
             self.last = tele['data'].copy()
 

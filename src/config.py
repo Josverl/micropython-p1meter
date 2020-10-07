@@ -1,12 +1,17 @@
 #pylint: disable=anomalous-backslash-in-string
 
 from micropython import const
+from  ubinascii import  hexlify
+from machine import unique_id
 
 # Base SSID to connect to
 homenet = {'SSID': 'IoT', 'password': 'MicroPython'}
 
 #the mqtt broker to connect to
 broker = {'server': '192.168.1.99', 'user': 'sensor', 'password': 'SensorPassport'}
+CLIENT_ID = b'p1_meter_' + hexlify(unique_id())
+TOPIC = b"p1_meter"
+
 
 # Serial Pins for meter connection
 # TX pin is only used for testing/simulation but needs to be specified
