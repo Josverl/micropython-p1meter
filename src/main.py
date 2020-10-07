@@ -4,7 +4,7 @@ import uasyncio as asyncio
 from p1meter import P1Meter
 import wifi
 from mqttclient import MQTTClient2 # ensure_mqtt_connected, publish_one
-from config import RX_PIN_NR, TX_PIN_NR, RUN_SIM
+from config import RX_PIN_NR, TX_PIN_NR, RUN_SIM, CLIENT_ID
 from utilities import cpu_temp
 
 if RUN_SIM:
@@ -32,6 +32,7 @@ async def maintain_memory(interval :int=600 ):
         log.debug( "freed: {0:,} - now free: {1:,}".format( after-before , after ).replace(',','.') ) # EU Style : use . as a thousands seperator
         glb_mqtt_client.publish_one("p1_meter/sensor/mem_free", str(after) )
         glb_mqtt_client.publish_one("p1_meter/sensor/cpu_temp", str(cpu_temp()) )
+        glb_mqtt_client.publish_one("p1_meter/sensor/client_id", CLIENT_ID )
         await asyncio.sleep(interval)
 
 
