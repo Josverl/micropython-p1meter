@@ -77,17 +77,9 @@ def log_ifconfig():
     log.info("Connected to Wifi with IP:{0}, Network mask:{1}, Router:{2}, DNS: {3}".format( *config ))
 
 async def check_stable(duration: int = 2000):
-        t = time.ticks_ms()
-        log.info('Checking WiFi stability for {} ms'.format(duration))
-        # Timeout ensures stable WiFi and forces minimum outage duration
-        while wlan.isconnected() and time.ticks_diff(time.ticks_ms(), t) < duration:
-            await asyncio.sleep_ms(10)
-        return wlan.isconnected()
-
-def check_stable2(duration: int = 100):
-        t = time.ticks_ms()
-        log.info('Checking WiFi stability for {} ms'.format(duration))
-        # Timeout ensures stable WiFi and forces minimum outage duration
-        while wlan.isconnected() and time.ticks_diff(time.ticks_ms(), t) < duration:
-            time.sleep_ms(1)
-        return wlan.isconnected()
+    t = time.ticks_ms()
+    log.info('Checking WiFi stability for {} ms'.format(duration))
+    # Timeout ensures stable WiFi and forces minimum outage duration
+    while wlan.isconnected() and time.ticks_diff(time.ticks_ms(), t) < duration:
+        await asyncio.sleep_ms(10)
+    return wlan.isconnected()
