@@ -5,7 +5,7 @@ from machine import UART
 import uasyncio as asyncio
 # from timed_func import timed_function
 
-from mqttclient import MQTTClient
+from mqttclient import MQTTClient2
 from utilities import crc16
 from config import codetable
 

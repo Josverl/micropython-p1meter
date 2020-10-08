@@ -16,7 +16,7 @@ async def ensure_connected():
     global wlan_stable
     # check state on first call.
     if check_stable():
-        ifconfig()
+        log_ifconfig()
     while True:
         if not wlan or not wlan.active() or not wlan.isconnected():
             wlan_stable = False
@@ -28,13 +28,9 @@ async def ensure_connected():
 def activate():
     "only start the wifi connection"
     # connect to a known WiFi ( from config file)
-    log.debug('step 1')
     if not wlan.active():
-        log.debug('step 1.1')
         wlan.active(True)
-    log.debug('step 1.2')
     if not wlan.isconnected():
-        log.debug('step 2')
         log.info("Activating Wlan {0}".format(homenet['SSID']))
         wlan.connect(homenet['SSID'], homenet['password'])
 
@@ -59,14 +55,26 @@ async def connect_as():
 
     wlan_stable = await check_stable(duration =100)
     if wlan_stable:
-        ifconfig()
-    else: 
-        log.warning("Unable to connect to Wlan {0}".format(homenet['SSID']))
+        log_ifconfig()
+    else:
+        cause = 'reason unknown'
+        if wlan.status() == network.STAT_WRONG_PASSWORD:
+            cause = 'wrong password'
+        elif wlan.status() == network.STAT_NO_AP_FOUND:
+            cause = 'SSID not found'
+        elif wlan.status() == network.STAT_ASSOC_FAIL:
+            cause = 'assoc fail'
+        elif wlan.status() == network.STAT_CONNECTING:
+            cause = 'cannot find SSID'
+        #deactivate ( to re-activate later) 
+        wlan.active(False)
+        log.error("Unable to connect to Wlan {}; {}".format(homenet['SSID'], cause ))
 
-def ifconfig():
+
+def log_ifconfig():
     # prettyprint the interface's IP/netmask/gw/DNS addresses
     config = wlan.ifconfig()
-    log.info("Connected to Wifi with IP:{0}, Network mask:{1}, Router:{2}, DNS: {3}".format( *config ))    
+    log.info("Connected to Wifi with IP:{0}, Network mask:{1}, Router:{2}, DNS: {3}".format( *config ))
 
 async def check_stable(duration: int = 2000):
         t = time.ticks_ms()

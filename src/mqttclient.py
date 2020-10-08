@@ -7,7 +7,7 @@ import network
 import ujson as json
 import uasyncio as asyncio
 from umqtt.simple import MQTTClient, MQTTException
-from wifi import wlan
+from wifi import wlan, wlan_stable
 
 from config import broker , publish_as_json, CLIENT_ID, TOPIC
 
@@ -60,11 +60,28 @@ class MQTTClient2(object):
                 # flag re-init of MQTT client
                 self.mqtt_client = None
 
-    def connect(self, parameter_list):
-        """
-        docstring
-        """
-        pass
+    def connect(self):
+        if wlan.status() == network.STAT_GOT_IP:
+            try:
+                print("connecting to mqtt server {0}".format(self.server))
+                self.mqtt_client.connect()
+                print("Connected")
+            except (MQTTException, OSError)  as e:
+                # try to give a decent error for common problems
+                if type(e) is type(MQTTException()):
+                    if e.args[0] == 5: # EIO
+                        log.error("MQTT server error {}: {}".format(e, "check username/password"))
+                    elif e.args[0] == 2: # ENOENT
+                        log.error("MQTT server error {}: {}".format(e, "server address or network"))
+                    else:
+                        log.error("{} {}".format(type(e).__name__, e ) )
+                else:
+                    if e.args[0] in (113, 23) : # EHOSTUNREACH
+                        log.error("OS Error {}: {}".format(e, "Host unreachable, check server address or network"))
+                    else:
+                        log.error("{} {}".format(type(e).__name__, e ) )
+        else:
+            log.warning('network not ready/stable')
 
     async def ensure_mqtt_connected(self):
 
@@ -76,20 +93,8 @@ class MQTTClient2(object):
                 self.mqtt_client  = MQTTClient(CLIENT_ID, self.server , user=self.user, password=self.password)
             if self.mqtt_client.sock is None:
                 log.warning('need to start mqqt client')
-                # but only if the adapter has got an IP assigned // DHCP
-                if wlan.status() == network.STAT_GOT_IP:
-                    try:
-                        log.info("connecting to mqtt server {0}".format(self.server))
-                        self.mqtt_client.connect()
-                        log.info("Connected")
-                    except (MQTTException, OSError)  as e:
-                        log.error(e)
-                        # [Errno 104] ECONNRESET
-                        # server reset : so possibly:
-                        # - incorrect password
-                        # - network blocked
-                else:
-                    log.warning('network not ready')
+                self.connect()
+
             # check
             await asyncio.sleep(10)
 

@@ -5,10 +5,11 @@ from  ubinascii import  hexlify
 from machine import unique_id
 
 # Base SSID to connect to
-homenet = {'SSID': 'IoT', 'password': 'MicroPython'}
+homenet = {'SSID': 'IoT_T', 'password': 'MicroPython'}
 
 #the mqtt broker to connect to
-broker = {'server': '192.168.1.99', 'user': 'sensor', 'password': 'SensorPassport'}
+broker = {'server': 'homeassistant.local', 'user': 'sensor', 'password': 'SensorPassport'}
+
 CLIENT_ID = b'p1_meter_' + hexlify(unique_id())
 TOPIC = b"p1_meter"
 
