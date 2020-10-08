@@ -5,7 +5,9 @@ from p1meter import P1Meter
 import wifi
 from mqttclient import MQTTClient2 # ensure_mqtt_connected, publish_one
 from config import RX_PIN_NR, TX_PIN_NR, RUN_SIM, CLIENT_ID
-from utilities import cpu_temp
+from utilities import cpu_temp, led_control, LED_GREEN, LED_BLUE, LED_RED, LED_YELLOW
+
+
 
 if RUN_SIM:
     from p1meter_sym import P1MeterSIM
@@ -35,12 +37,28 @@ async def maintain_memory(interval :int=600 ):
         glb_mqtt_client.publish_one("p1_meter/sensor/client_id", CLIENT_ID )
         await asyncio.sleep(interval)
 
+async def update_leds():
+    "set the leds to reflect the state of the main components"
+    while 1:
+        # print('wifi led 1  ', 100 if (wifi.wlan.status() == wifi.network.STAT_GOT_IP) else 0)
+        # print('mqtt led 2  ',100 if  glb_mqtt_client.healthy() else 0)
+        # print('p1_last led 3', 100 if len(glb_p1_meter.last)>0 else 0)  
+        bright = 50
+        # wifi led
+        led_control(LED_GREEN, bright if (wifi.wlan.status() == wifi.network.STAT_GOT_IP) else 0)        
+        #MQTT
+        led_control(LED_YELLOW, bright if glb_mqtt_client.healthy() else 0)
+        # message received ?
+        led_control(LED_BLUE, bright if len(glb_p1_meter.last)>0 else 0)
+        await asyncio.sleep_ms(200)
+
 
 async def main(mq_client):
     # debug aid
     log.info("Set up main tasks")
     set_global_exception()  # Debug aid
 
+    asyncio.create_task(update_leds())
     # connect to wifi and mqtt broker
     asyncio.create_task(wifi.ensure_connected())
     asyncio.create_task(mq_client.ensure_mqtt_connected())
@@ -61,9 +79,12 @@ try:
     log.info('micropython p1 meter is starting...')
     glb_mqtt_client = MQTTClient2()
     glb_p1_meter = P1Meter(RX_PIN_NR,TX_PIN_NR,mq_client=glb_mqtt_client )
-
+    led_control(LED_RED, 0)
     asyncio.run(main(glb_mqtt_client))
 finally:
+    # status = off
+    [led_control(i, 0) for i in range(4) ] 
+    led_control(LED_RED, 200)
     log.info("Clear async loop retained state")
     asyncio.new_event_loop()  # Clear retained state
 

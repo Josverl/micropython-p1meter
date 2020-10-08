@@ -1,4 +1,5 @@
 "16 bit Cyclic redundancy check (CRC)"
+import machine
 from uctypes import UINT16
 import esp32
 
@@ -29,4 +30,29 @@ def cpu_temp()->float:
         tc = -1
     # print("T = {0:4d} deg F or {1:5.1f}  deg C".format(tf,tc))
     return tc
+
+#####################################################################
+# create array of leds 
+#####################################################################
+# [led_control(i, 100) for i in range(4) ]
+#
+# for i in range(4):
+#     led_control(i, (i+1)*100 )
+#####################################################################
+led_pins = (13,25,14,27)
+#     machine.Pin(pin, machine.Pin.OUT)
+
+leds = [machine.PWM(machine.Pin(pin), freq=2000, duty=0) for pin in led_pins ]
+# yellow, green , red , blue
+LED_YELLOW = 0
+LED_GREEN = 1
+LED_RED = 2
+LED_BLUE = 3
+
+def led_control(n :int=0,bright :int=0):
+    if n<0 or n>len(leds) or bright <0 or bright > 1000:
+        return False
+    #print(n,bright)
+    leds[n].duty(bright)
+    return True
 
