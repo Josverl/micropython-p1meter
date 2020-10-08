@@ -17,7 +17,7 @@ TOPIC = b"p1_meter"
 # Serial Pins for meter connection
 # TX pin is only used for testing/simulation but needs to be specified
 RX_PIN_NR = const(2)
-TX_PIN_NR = const(5)
+TX_PIN_NR = const(15)
 
 # run the simulator for testing (using TX_PIN_NR)
 RUN_SIM = True

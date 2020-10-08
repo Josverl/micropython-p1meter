@@ -31,6 +31,7 @@ def activate():
     if not wlan.active():
         wlan.active(True)
     if not wlan.isconnected():
+        wlan.config(dhcp_hostname="p1_meter")
         log.info("Activating Wlan {0}".format(homenet['SSID']))
         wlan.connect(homenet['SSID'], homenet['password'])
 
