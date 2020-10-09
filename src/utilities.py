@@ -32,7 +32,7 @@ def cpu_temp()->float:
     return tc
 
 #####################################################################
-# create array of leds 
+# create array of leds
 #####################################################################
 # [led_control(i, 100) for i in range(4) ]
 #
@@ -56,8 +56,8 @@ def led_control(n :int=0,bright :int=0):
     leds[n].duty(bright)
     return True
 
-def led_toggle(n :int=0):
-    if n<0 or n>len(leds):
+def led_toggle(n :int=0, bright :int=100):
+    if n<0 or n>len(leds) or bright <0 or bright > 1000:
         return False
-    #print(n,bright)
-    leds[n].duty(0 if leds[n].duty() else 100)
+    # print(n,bright)
+    leds[n].duty(0 if leds[n].duty() else bright)

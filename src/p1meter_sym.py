@@ -4,8 +4,9 @@ import logging
 import random
 from machine import UART
 import uasyncio as asyncio
-from utilities import crc16
+from utilities import crc16, led_toggle,  LED_RED
 from mqttclient import MQTTClient2
+
 # Logging
 log = logging.getLogger('SIMULATION')
 #set level no lower than ..... for this log only
@@ -34,6 +35,7 @@ class P1MeterSIM():
         """
         swriter = asyncio.StreamWriter(self.uart, {})
         while True:
+            led_toggle(LED_RED,10)
             log.warning('send simulated telegram')
             telegram = self.fake_message()
             # TMI log.debug('TX telegram message: {}'.format(telegram))

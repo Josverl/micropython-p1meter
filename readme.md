@@ -3,9 +3,10 @@
 ## todo
 functional:
  - [ ] add signal leds for: 
-      - [x] network connected 
-      - [x] mqtt connected + ping ok 
-      - [x] telegram received (toggle) 
+      - [x] network connected - green
+      - [x] mqtt connected + ping ok - yellow
+      - [x] telegram received (toggle) - blue
+      - [x] SIM telegram Send (toggle) - red
       - optional: meter power detected (6 pin cable)
       ? leds on / off in normal operation
       ? leds automatically off after 10 minutes to aid in troubleshooting on startup 
