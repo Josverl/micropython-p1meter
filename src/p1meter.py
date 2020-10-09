@@ -3,7 +3,7 @@ import ujson as json #used for deepcopy op dict
 import ure as re
 from machine import UART
 import uasyncio as asyncio
-# from timed_func import timed_function
+from utilities import  led_toggle,  LED_BLUE
 
 from mqttclient import MQTTClient2
 from utilities import crc16
@@ -103,6 +103,7 @@ class P1Meter():
         # check CRC
         if not self.crc_ok( tele, ) :
             return
+        led_toggle(LED_BLUE)
         # what has changed since last time ?
         newdata= set(tele['data']) - set(self.last)
 

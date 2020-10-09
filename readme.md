@@ -3,9 +3,9 @@
 ## todo
 functional:
  - [ ] add signal leds for: 
-      - network connected 
-      - mqtt connected + ping ok 
-      - telegram received (toggle) 
+      - [x] network connected 
+      - [x] mqtt connected + ping ok 
+      - [x] telegram received (toggle) 
       - optional: meter power detected (6 pin cable)
       ? leds on / off in normal operation
       ? leds automatically off after 10 minutes to aid in troubleshooting on startup 
@@ -14,13 +14,19 @@ functional:
  - [ ] periodically send all readings ( per minute / hour ? configurable)
  - [ ] also publish the ident from the header 
 
- - [ ] add actionable descriptions to common mqtt connection errors 
- - [ ] prevent / cleanup common mqtt connection errors on initial connect
-        ERROR:mqttclient:Error: sending json to MQTT : 'NoneType' object has no attribute 'publish'
-        ERROR:mqttclient:Error: while disconnecting MQTT : 'NoneType' object has no attribute 'disconnect'
-        ERROR:mqttclient:Error: sending json to MQTT : 'NoneType' object has no attribute 'publish'       
-        ERROR:mqttclient:Error: while disconnecting MQTT : 'NoneType' object has no attribute 'disconnect'
-
+ - [x] add actionable descriptions to common mqtt connection errors 
+ - [?] prevent / cleanup common mqtt connection errors on initial connect
+ ``` log
+        WARN     mqttclient mqtt not healthy
+        INFO     mqttclient create mqtt client homeassistant.local
+        WARN     mqttclient need to start mqqt client
+        INFO     mqttclient connecting to mqtt server homeassistant.local
+        ERROR    mqttclient 5
+        WARN     SIMULATION send simulated telegram
+        INFO     mqttclient publish 23 meter readings
+        ERROR    mqttclient Problem sending json to MQTT : [Errno 104] ECONNRESET
+        ERROR    mqttclient Oops while disconnecting MQTT : [Errno 104] ECONNRESET
+```
 mqtt client:  
  - [ ] switch to more stable MQTT lib
  - [ ] clear last sent state on mqtt reconnect to force sending all
@@ -37,9 +43,17 @@ mqtt client:
 
 Test cases : 
  - [ok] restart mqtt server 
- - [ ] wrong password 
- - [ ] no network connectivity to mqtt broker
+ - [x] wrong password 
+ - [x] no network connectivity to mqtt broker
  - [ ] no write permissions on topic
+
+Test on other firmwares 
+ - [ fail] LoBo + AsyncIO ( for telnet)
+ - [ fail] micropython 1.12
+ - [ ] pycopy
+
+
+
 
 Stability:
  - [x] CRC16 check
@@ -51,9 +65,12 @@ code quality:
         - [ ] gc
         - [ ] sys
 network:
-- 
-- [x] more robust network reconnection 
+- [ ] wifi.wlan_stable does not properly reflect the state 
 - [ ] clear last sent state on network reconnect
+- [ ] set config.dhcp hostname + last MAC bit 
+- [ ] LOW PRIO - fix weird UART0 disconnect on LOLIN32 Pro when starting up the network (does not repro on other hardware , and nospiram FW fails to load as well)
+- [x] more robust network reconnection 
+- [x] add log descriptions for common connection errors
 - test cases 
   - [disable wifi / enable wifi]
     - [ok] test / repro network disconnect - re-connect 

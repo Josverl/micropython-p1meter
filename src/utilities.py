@@ -56,3 +56,8 @@ def led_control(n :int=0,bright :int=0):
     leds[n].duty(bright)
     return True
 
+def led_toggle(n :int=0):
+    if n<0 or n>len(leds):
+        return False
+    #print(n,bright)
+    leds[n].duty(0 if leds[n].duty() else 100)

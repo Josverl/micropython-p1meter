@@ -48,8 +48,8 @@ async def update_leds():
         led_control(LED_GREEN, bright if (wifi.wlan.status() == wifi.network.STAT_GOT_IP) else 0)        
         #MQTT
         led_control(LED_YELLOW, bright if glb_mqtt_client.healthy() else 0)
-        # message received ?
-        led_control(LED_BLUE, bright if len(glb_p1_meter.last)>0 else 0)
+        # # message received ?
+        # led_control(LED_BLUE, bright if len(glb_p1_meter.last)>0 else 0)
         await asyncio.sleep_ms(200)
 
 
