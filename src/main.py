@@ -4,9 +4,8 @@ import uasyncio as asyncio
 from p1meter import P1Meter
 import wifi
 from mqttclient import MQTTClient2 # ensure_mqtt_connected, publish_one
-from config import RX_PIN_NR, TX_PIN_NR, RUN_SIM, CLIENT_ID
-from utilities import cpu_temp, led_control, LED_GREEN, LED_BLUE, LED_RED, LED_YELLOW
-
+from config import ROOT_TOPIC, RX_PIN_NR, TX_PIN_NR, RUN_SIM, CLIENT_ID
+from utilities import cpu_temp, led_control, LED_GREEN, LED_RED, LED_YELLOW
 
 
 if RUN_SIM:
@@ -30,11 +29,10 @@ async def maintain_memory(interval :int=600 ):
         gc.collect()
         gc.threshold(gc.mem_free() // 4 + gc.mem_alloc())
         after = gc.mem_free()
-        #todo: root topic
         log.debug( "freed: {0:,} - now free: {1:,}".format( after-before , after ).replace(',','.') ) # EU Style : use . as a thousands seperator
-        glb_mqtt_client.publish_one("p1_meter/sensor/mem_free", str(after) )
-        glb_mqtt_client.publish_one("p1_meter/sensor/cpu_temp", str(cpu_temp()) )
-        glb_mqtt_client.publish_one("p1_meter/sensor/client_id", CLIENT_ID )
+        glb_mqtt_client.publish_one(ROOT_TOPIC + b"/sensor/mem_free", str(after) )
+        glb_mqtt_client.publish_one(ROOT_TOPIC + b"/sensor/cpu_temp", str(cpu_temp()) )
+        glb_mqtt_client.publish_one(ROOT_TOPIC + b"/sensor/client_id", CLIENT_ID )
         await asyncio.sleep(interval)
 
 async def update_leds():
@@ -42,10 +40,10 @@ async def update_leds():
     while 1:
         # print('wifi led 1  ', 100 if (wifi.wlan.status() == wifi.network.STAT_GOT_IP) else 0)
         # print('mqtt led 2  ',100 if  glb_mqtt_client.healthy() else 0)
-        # print('p1_last led 3', 100 if len(glb_p1_meter.last)>0 else 0)  
+        # print('p1_last led 3', 100 if len(glb_p1_meter.last)>0 else 0)
         bright = 50
         # wifi led
-        led_control(LED_GREEN, bright if (wifi.wlan.status() == wifi.network.STAT_GOT_IP) else 0)        
+        led_control(LED_GREEN, bright if (wifi.wlan.status() == wifi.network.STAT_GOT_IP) else 0)
         #MQTT
         led_control(LED_YELLOW, bright if glb_mqtt_client.healthy() else 0)
         # # message received ?
@@ -65,7 +63,7 @@ async def main(mq_client):
     if RUN_SIM:
         # SIMULATION: simulate meter input on this machine
         sim = P1MeterSIM(glb_p1_meter.uart, mq_client)
-        asyncio.create_task(sim.sender(interval=1))
+        asyncio.create_task(sim.sender(interval=10))
 
     # start receiver
     asyncio.create_task(glb_p1_meter.receive())
@@ -83,9 +81,10 @@ try:
     asyncio.run(main(glb_mqtt_client))
 finally:
     # status = off
-    [led_control(i, 0) for i in range(4) ] 
     led_control(LED_RED, 200)
+    for i in range(4):
+        led_control(i, 0)
     log.info("Clear async loop retained state")
     asyncio.new_event_loop()  # Clear retained state
 
-
+    #TODO: reboot after x seconds stopped when in production

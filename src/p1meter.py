@@ -3,16 +3,16 @@ import ujson as json #used for deepcopy op dict
 import ure as re
 from machine import UART
 import uasyncio as asyncio
-from utilities import  led_toggle,  LED_BLUE
+from utilities import  led_toggle, crc16,  LED_BLUE
 
 from mqttclient import MQTTClient2
-from utilities import crc16
 from config import codetable
 
 # Logging
 log = logging.getLogger('p1meter')
 #set level no lower than ..... for this log only
-log.level = max( logging.INFO , logging._level)
+log.level = max( logging.DEBUG , logging._level) #pylint: disable=protected-access
+VERBOSE = False
 
 def dictcopy(d : dict):
     "returns a copy of a dict using copy though json"
@@ -21,11 +21,15 @@ def dictcopy(d : dict):
 
 # @timed_function
 def replace_codes(readings :list)-> list :
-    "replace the OBIS codes by their topic as defined in the codetable"
+    "replace the OBIS codes by their ROOT_TOPIC as defined in the codetable"
     for reading in readings:
         for code in codetable:
             if re.match(code[0],reading['meter']):
                 reading['meter'] = re.sub(code[0], code[1], reading['meter'])
+
+                if reading['unit'] and len(reading['unit']) > 0:
+                    reading['meter'] += '_' + reading['unit']
+
                 log.debug("{} --> {}".format(code[0],reading['meter'] ))
                 break
     return readings
@@ -54,15 +58,17 @@ class P1Meter():
         tele = dictcopy(empty)
         log.info("listening on UART for P1 meter data")
         while True:
-            line = await sreader.readline()
-            # TMI log.debug("raw: {}".format(line))
+            line = await sreader.readline()         #pylint: disable= not-callable
+            if VERBOSE:
+                log.debug("raw: {}".format(line))
             if line:
                 # to string
                 try:
                     line = line.decode()
-                except BaseException as error:  # pylint: disable=unused-variable
+                except BaseException as error:      #pylint: disable= unused-variable
                     line = "--noise--"
-                # log.debug("clean".format(line))
+                if VERBOSE:
+                    log.debug("clean : {}".format(line))
                 if line[0] == '/':
                     log.debug('header found')
                     tele = dictcopy(empty)
@@ -86,11 +92,12 @@ class P1Meter():
         if not tele or not self.message:
             return False
         try:
-            buf = self.message.replace('\n','\r\n').encode()
+            # buf = self.message.replace('\n','\r\n').encode()
+            buf = self.message.encode()
             # TMI log.debug( "buf: {}".format(buf))
             crc_computed = "{0:04X}".format(crc16(buf))
             log.debug("RX computed CRC {0}".format(crc_computed))
-            if tele['footer'] == "!{0}\n".format(crc_computed):
+            if crc_computed in tele['footer']:
                 return True
             else:
                 log.warning("CRC Failed, computed: {0} != received {1}!!".format(str(crc_computed), str(tele['footer'][1:5])))
@@ -126,7 +133,7 @@ class P1Meter():
 
                 log.debug(lineinfo)
                 readings.append(lineinfo )
-        # replace codes for topics
+        # replace codes for ROOT_TOPICs
         reading = replace_codes(readings)
 
         log.debug("readings: {}".format(readings))

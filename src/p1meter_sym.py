@@ -6,11 +6,13 @@ from machine import UART
 import uasyncio as asyncio
 from utilities import crc16, led_toggle,  LED_RED
 from mqttclient import MQTTClient2
+from config import ROOT_TOPIC
 
 # Logging
 log = logging.getLogger('SIMULATION')
 #set level no lower than ..... for this log only
-log.level = max( logging.INFO , logging._level)
+log.level = max( logging.INFO , logging._level) #pylint: disable=protected-access
+VERBOSE = False
 
 #####################################################
 # test rig
@@ -30,20 +32,21 @@ class P1MeterSIM():
 
     async def sender(self, interval :int = 5):
         """
-        Simulates data being sent from the t1 port to aid in debugging
-        this assume that pin rx=2 and tx=5 are connected
+        Simulates data being sent from the p1 port to aid in debugging
+        this assumes that pin rx=2 and tx=15 are connected
         """
         swriter = asyncio.StreamWriter(self.uart, {})
         while True:
             led_toggle(LED_RED,10)
             log.warning('send simulated telegram')
             telegram = self.fake_message()
-            # TMI log.debug('TX telegram message: {}'.format(telegram))
+            if VERBOSE: 
+                log.debug(b'TX telegram message: '+telegram)
             swriter.write(telegram)
-            await swriter.drain()
+            await swriter.drain()       # pylint: disable= not-callable
             self.messages += 1
             await asyncio.sleep_ms(1)
-            self.mqtt_client.publish_one("p1_meter/sensor/simulator", str(self.messages))   #todo: root topic
+            self.mqtt_client.publish_one(ROOT_TOPIC + b"/sensor/simulator", str(self.messages))   #todo: root ROOT_TOPIC
             await asyncio.sleep(interval)
 
     def fake_message(self):
@@ -54,16 +57,14 @@ class P1MeterSIM():
 
         u = random.randint(-1000,1000) /100
         msg = msg.format(0,max(u, 0), -1*min(u,0))
-
-
-        buf = bytearray(msg.replace('\n','\r\n'))
+        buf = bytearray(msg)
         crc_computed = "{0:04X}".format(crc16(buf))
         # log.debug("TX CRC16 buf : {}".format(buf))
         log.debug("TX computed CRC {0}".format(crc_computed))
-        msg = msg + "{0}".format(crc_computed) + '\n'
+        msg = msg + "{0}".format(crc_computed) + '\r\n'
         return msg
 
-
+# spell-checker: disable 
 
 meter1 = """/XMX5LGBBFG1012650850
 1-3:0.2.8(42)

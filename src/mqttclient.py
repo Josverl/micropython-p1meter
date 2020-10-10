@@ -9,7 +9,7 @@ import uasyncio as asyncio
 from umqtt.simple import MQTTClient, MQTTException
 from wifi import wlan, wlan_stable
 
-from config import broker , publish_as_json, CLIENT_ID, TOPIC
+from config import broker , publish_as_json, CLIENT_ID, ROOT_TOPIC
 
 # Logging
 log = logging.getLogger('mqttclient')
@@ -28,7 +28,7 @@ class MQTTClient2(object):
     def healthy(self) -> bool:
         "is the client healthy?"
         state = True
-        try: 
+        try:
             if not self.mqtt_client:
                 log.debug('mqtt_client = None')
                 state = False
@@ -47,7 +47,7 @@ class MQTTClient2(object):
             log.warning('mqtt not healthy')
             # todo: trigger reconnect ?
         return state
-    
+
     def disconnect(self):
         "disconnect and close"
         if self.mqtt_client:
@@ -104,26 +104,26 @@ class MQTTClient2(object):
         #   File "uasyncio/core.py", line 1, in run_until_complete
         #   File "mqttclient.py", line 45, in ensure_mqtt_connected
         #   File "umqtt/simple.py", line 99, in connect
-        # MQTTException: 5 (access denied ?) 
+        # MQTTException: 5 (access denied ?)
 
     async def publish_readings(self, readings: list) -> bool:
         if publish_as_json:
             log.debug("publish {} meter readings as json".format(len(readings)))
             #write readings as json
-            topic = TOPIC + b"/json"
+            topic = ROOT_TOPIC + b"/json"
             if not self.publish_one(topic, json.dumps(readings)):
                 return False
 
         log.info("publish {} meter readings".format(len(readings)))
         #write readings 1 by one
         for meter in readings:
-            topic = TOPIC + b"/"+ meter['meter'].encode()
+            topic = ROOT_TOPIC + b"/"+ meter['meter'].encode()
             if not self.publish_one(topic, meter['reading']):
                 return False
         return True
 
     def publish_one(self, topic, value) -> bool:
-        "Publish a single topic to MQTT"
+        "Publish a single ROOT_TOPIC to MQTT"
         if not self.healthy():
             return False
         r = True

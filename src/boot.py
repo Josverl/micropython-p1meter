@@ -1,12 +1,12 @@
 
 # boot.py - - runs on boot-up
+# pylint: disable= wrong-import-position, wrong-import-order
 import sys  # pylint: disable=wrong-import-position
+import esp
 sys.path.insert(1, '/lib')
 
-from micropython import const
-import machine
-import esp
 import logging
+from config import DEBUG
 
 #############################################################
 # setup colorized log formating in columns to ease reading
@@ -39,12 +39,8 @@ class LogFormatter(logging.Handler):
 logging.getLogger().addHandler(LogFormatter())
 
 
+# WiFI: no need to init wifi,it is established by an async task
 
-# WiFI: no need to init wifi,it is established from async task
-
-#Debug 
-DEBUG = False
-#DEBUG = True
 if DEBUG:
     # esp.osdebug(0)          # redirect vendor O/S debugging messages to UART(0)
     # esp.osdebug(0, esp.LOG_ERROR)
@@ -53,7 +49,6 @@ if DEBUG:
     #logging.basicConfig(level=logging.INFO)
 else:
     #esp.osdebug(None)       # turn off vendor O/S debugging messages
-    esp.osdebug(0, esp.LOG_ERROR)   # show errors only 
+    esp.osdebug(0, esp.LOG_ERROR)   # show errors only
     logging.basicConfig(level=logging.INFO)
-
 

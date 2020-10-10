@@ -1,10 +1,9 @@
+import logging
 import uasyncio as asyncio
-import sys
 import network
 import utime as time
-import machine
-from config import homenet
-import logging
+import webrepl
+from config import homenet, CLIENT_ID
 
 wlan = network.WLAN(network.STA_IF)
 wlan_stable = False
@@ -31,7 +30,7 @@ def activate():
     if not wlan.active():
         wlan.active(True)
     if not wlan.isconnected():
-        wlan.config(dhcp_hostname="p1_meter")
+        wlan.config(dhcp_hostname=CLIENT_ID)
         log.info("Activating Wlan {0}".format(homenet['SSID']))
         wlan.connect(homenet['SSID'], homenet['password'])
 
@@ -49,12 +48,10 @@ async def connect_as():
         while wlan.status() == network.STAT_CONNECTING and time.ticks_diff(time.ticks_ms(), t) < timeout:
             log.debug('connecting...')
             await asyncio.sleep_ms(200)
-        log.debug('step 3')
-
     else:
         log.debug("Wlan already active")
 
-    wlan_stable = await check_stable(duration =100)
+    await check_stable(duration =100)
     if wlan_stable:
         log_ifconfig()
     else:
@@ -67,7 +64,7 @@ async def connect_as():
             cause = 'assoc fail'
         elif wlan.status() == network.STAT_CONNECTING:
             cause = 'cannot find SSID'
-        #deactivate ( to re-activate later) 
+        #deactivate ( to re-activate later)
         wlan.active(False)
         log.error("Unable to connect to Wlan {}; {}".format(homenet['SSID'], cause ))
 
@@ -77,10 +74,20 @@ def log_ifconfig():
     config = wlan.ifconfig()
     log.info("Connected to Wifi with IP:{0}, Network mask:{1}, Router:{2}, DNS: {3}".format( *config ))
 
+
 async def check_stable(duration: int = 2000):
+    global wlan_stable
     t = time.ticks_ms()
     log.info('Checking WiFi stability for {} ms'.format(duration))
     # Timeout ensures stable WiFi and forces minimum outage duration
     while wlan.isconnected() and time.ticks_diff(time.ticks_ms(), t) < duration:
         await asyncio.sleep_ms(10)
-    return wlan.isconnected()
+    wlan_stable = wlan.isconnected()
+    try:
+        log.info('webrepl starting')
+        webrepl.start()
+        # webrepl.start(password='1234')
+    except OSError as e:
+        log.warning('Unable to start webrepl {}'.format(e))
+    return wlan_stable
+

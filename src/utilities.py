@@ -6,8 +6,7 @@ import esp32
 # @timed_function
 def crc16(buf :bytearray) -> UINT16 :
     """CRC-16-ANSI calculated over the characters in the data message using the polynomial: x16 + x15 + x2 + 1
-
-    note: in the p1 message replace `\\n` by `\\r\\n`"""
+    """
     # http://www.nodo-domotica.nl/images/8/86/DSMR.pdf
     # https://en.wikipedia.org/wiki/Cyclic_redundancy_check
     crc = 0x0000
@@ -26,7 +25,7 @@ def cpu_temp()->float:
     try:
         tf = esp32.raw_temperature()
         tc = (tf-32.0)/1.8
-    except:
+    except OSError:
         tc = -1
     # print("T = {0:4d} deg F or {1:5.1f}  deg C".format(tf,tc))
     return tc
