@@ -2,6 +2,7 @@
 import machine
 from uctypes import UINT16
 import esp32
+import config as cfg
 
 # @timed_function
 def crc16(buf :bytearray) -> UINT16 :
@@ -38,21 +39,22 @@ def cpu_temp()->float:
 # for i in range(4):
 #     led_control(i, (i+1)*100 )
 #####################################################################
-led_pins = (13,25,14,27)
+led_pins = ( cfg.LED_PIN_RED, cfg.LED_PIN_YELLOW, cfg.LED_PIN_GREEN, cfg.LED_PIN_BLUE)
 #     machine.Pin(pin, machine.Pin.OUT)
 
 leds = [machine.PWM(machine.Pin(pin), freq=2000, duty=0) for pin in led_pins ]
 # yellow, green , red , blue
-LED_YELLOW = 0
-LED_GREEN = 1
-LED_RED = 2
+LED_RED = 0
+LED_YELLOW = 1
+LED_GREEN = 2
 LED_BLUE = 3
 
-def led_control(n :int=0,bright :int=0):
+def led_control(n :int=0,bright :int=0, freq=2000):
     if n<0 or n>len(leds) or bright <0 or bright > 1000:
         return False
     #print(n,bright)
     leds[n].duty(bright)
+    leds[n].freq(freq)
     return True
 
 def led_toggle(n :int=0, bright :int=100):

@@ -25,6 +25,17 @@ TX_PIN_NR = const(15)
 publish_as_json = False
 
 #------------------------------------------------
+# A few Leds - optional
+
+LED_PIN_RED = 13
+LED_PIN_YELLOW = 14
+LED_PIN_GREEN = 27
+LED_PIN_BLUE = 25
+
+
+
+
+#------------------------------------------------
 # run the simulator for testing (using TX_PIN_NR)
 # Set to False for normal operation
 ENABLE_SIM_PIN = const(18)

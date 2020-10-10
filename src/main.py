@@ -77,13 +77,15 @@ try:
     log.info('micropython p1 meter is starting...')
     glb_mqtt_client = MQTTClient2()
     glb_p1_meter = P1Meter(RX_PIN_NR,TX_PIN_NR,mq_client=glb_mqtt_client )
-    led_control(LED_RED, 0)
+    for i in range(4):
+        led_control(i, 0)
     asyncio.run(main(glb_mqtt_client))
 finally:
     # status = off
-    led_control(LED_RED, 200)
     for i in range(4):
         led_control(i, 0)
+    # Red blink =means Stopped 
+    led_control(LED_RED, 200,freq= 1)
     log.info("Clear async loop retained state")
     asyncio.new_event_loop()  # Clear retained state
 
