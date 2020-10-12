@@ -7,13 +7,16 @@ from p1meter import P1Meter
 import wifi
 from mqttclient import MQTTClient2 # ensure_mqtt_connected, publish_one
 from config import ROOT_TOPIC, RX_PIN_NR, TX_PIN_NR, RUN_SIM, CLIENT_ID
-from utilities import cpu_temp, led_control, LED_GREEN, LED_RED, LED_YELLOW
+
+from utilities import cpu_temp, Feedback
 
 if RUN_SIM:
+    ROOT_TOPIC = CLIENT_ID      # avoid overwiting actual data
     from p1meter_sym import P1MeterSIM
 
 # Logging
 log = logging.getLogger('main')
+fb = Feedback()
 
 def set_global_exception():
     def handle_exception(loop, context):    # pylint: disable=unused-argument
@@ -39,23 +42,25 @@ async def maintain_memory(interval :int=600 ):
 async def update_leds():
     "set the leds to reflect the state of the main components"
     while 1:
-        # print('wifi led 1  ', 100 if (wifi.wlan.status() == wifi.network.STAT_GOT_IP) else 0)
-        # print('mqtt led 2  ',100 if  glb_mqtt_client.healthy() else 0)
-        # print('p1_last led 3', 100 if len(glb_p1_meter.last)>0 else 0)
-        bright = 50
         # wifi led
-        led_control(LED_GREEN, bright if (wifi.wlan.status() == wifi.network.STAT_GOT_IP) else 0)
+        if (wifi.wlan.status() == wifi.network.STAT_GOT_IP):
+            fb.update(fb.L_NET, fb.GREEN)
+        else:
+            fb.update(fb.L_NET, fb.RED)
+
         #MQTT
-        led_control(LED_YELLOW, bright if glb_mqtt_client.healthy() else 0)
-        # # message received ?
-        # led_control(LED_BLUE, bright if len(glb_p1_meter.last)>0 else 0)
+        if glb_mqtt_client.healthy():
+            fb.update(fb.L_MQTT, fb.GREEN)
+        else:
+            fb.update(fb.L_MQTT, fb.RED)
+
         await asyncio.sleep_ms(200)
 
 async def trigger_all(interval:int=300):
     "trigger the sending of the complete next telegram every 5 minutes"
     while 1:
-        glb_p1_meter.clearlast()
         await asyncio.sleep(interval)    
+        glb_p1_meter.clearlast()
 
 async def main(mq_client):
     # debug aid
@@ -68,7 +73,7 @@ async def main(mq_client):
     asyncio.create_task(mq_client.ensure_mqtt_connected())
     if RUN_SIM:
         # SIMULATION: simulate meter input on this machine
-        sim = P1MeterSIM(glb_p1_meter.uart, mq_client)
+        sim = P1MeterSIM(glb_p1_meter.uart, mq_client,fb)
         asyncio.create_task(sim.sender(interval=10))
 
     # start receiver
@@ -84,23 +89,24 @@ async def main(mq_client):
 ###############################################################################
 try:
     log.info('micropython p1 meter is starting...')
+
     glb_mqtt_client = MQTTClient2()
-    glb_p1_meter = P1Meter(RX_PIN_NR,TX_PIN_NR,mq_client=glb_mqtt_client )
-    for i in range(4):
-        led_control(i, 0)
+    glb_p1_meter = P1Meter(RX_PIN_NR,TX_PIN_NR,mq_client=glb_mqtt_client ,fb=fb)
+    fb.clear()
     asyncio.run(main(glb_mqtt_client))
 finally:
-    # status = off
-    for i in range(4):
-        led_control(i, 0)
-    # Red blink =means Stopped 
-    led_control(LED_RED, 200,freq= 1)
+    # status 
+    fb.clear(fb.RED)
+
     log.info("Clear async loop retained state")
     asyncio.new_event_loop()  # Clear retained state
 
 # reboot after x seconds stopped when in production
 if not RUN_SIM:
-    log.warning('Rebooting in 20 seconds, Ctrl-C to abort')
-    time.sleep(20)
+    log.warning('Rebooting in 15 seconds, Ctrl-C to abort')
+    for n in range(3):
+        fb.update(n,fb.PURPLE)
+        time.sleep(15)
+        fb.update(n,fb.BLUE)
     log.warning('Rebooting now...')
     machine.reset()

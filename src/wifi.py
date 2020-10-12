@@ -3,10 +3,15 @@ import uasyncio as asyncio
 import network
 import utime as time
 import webrepl
-from config import homenet, CLIENT_ID
+import config as cfg
+import uftpd
+
 
 wlan = network.WLAN(network.STA_IF)
 wlan_stable = False
+
+#wait until wifi is connected
+uftpd.stop()
 
 # Logging
 log = logging.getLogger(__name__)
@@ -30,9 +35,9 @@ def activate():
     if not wlan.active():
         wlan.active(True)
     if not wlan.isconnected():
-        wlan.config(dhcp_hostname=CLIENT_ID)
-        log.info("Activating Wlan {0}".format(homenet['SSID']))
-        wlan.connect(homenet['SSID'], homenet['password'])
+        wlan.config(dhcp_hostname=cfg.CLIENT_ID)
+        log.info("Activating Wlan {0}".format(cfg.homenet['SSID']))
+        wlan.connect(cfg.homenet['SSID'], cfg.homenet['password'])
 
 async def connect_as():
     global wlan_stable
@@ -84,8 +89,9 @@ async def check_stable(duration: int = 2000):
         await asyncio.sleep_ms(10)
     wlan_stable = wlan.isconnected()
     try:
-        log.info('webrepl starting')
+        log.info('webrepl and ftp server starting')
         webrepl.start()
+        uftpd.restart()
         # webrepl.start(password='1234')
     except OSError as e:
         log.warning('Unable to start webrepl {}'.format(e))

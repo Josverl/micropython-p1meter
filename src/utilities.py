@@ -1,6 +1,8 @@
 "16 bit Cyclic redundancy check (CRC)"
 import machine
+from machine import Pin
 from uctypes import UINT16
+from neopixel import NeoPixel
 import esp32
 import config as cfg
 
@@ -31,34 +33,44 @@ def cpu_temp()->float:
     # print("T = {0:4d} deg F or {1:5.1f}  deg C".format(tf,tc))
     return tc
 
-#####################################################################
-# create array of leds
-#####################################################################
-# [led_control(i, 100) for i in range(4) ]
-#
-# for i in range(4):
-#     led_control(i, (i+1)*100 )
-#####################################################################
-led_pins = ( cfg.LED_PIN_RED, cfg.LED_PIN_YELLOW, cfg.LED_PIN_GREEN, cfg.LED_PIN_BLUE)
-#     machine.Pin(pin, machine.Pin.OUT)
 
-leds = [machine.PWM(machine.Pin(pin), freq=8000, duty=0) for pin in led_pins ]
-# yellow, green , red , blue
-LED_RED = 0
-LED_YELLOW = 1
-LED_GREEN = 2
-LED_BLUE = 3
 
-def led_control(n :int=0,bright :int=0, freq=2000):
-    if n<0 or n>len(leds) or bright <0 or bright > 1000:
-        return False
-    #print(n,bright)
-    leds[n].duty(bright)
-    leds[n].freq(freq)
-    return True
+def enable_rts(enable:bool=True):
+    _pin_rts = Pin(5, Pin.OUT, enable)
+    _pin_rts.value(enable)
 
-def led_toggle(n :int=0, bright :int=100):
-    if n<0 or n>len(leds) or bright <0 or bright > 1000:
-        return False
-    # print(n,bright)
-    leds[n].duty(0 if leds[n].duty() else bright)
+
+
+
+class Feedback():
+    "simple feedback via 3 neopixel leds"
+    # fb = Feedback()
+    # fb.update(0,fb.GREEN)
+
+    L_P1 = 0
+    L_MQTT = 1
+    L_NET = 2
+
+    BLACK=(0,0,0)
+    WHITE=(20,20,20)
+    RED=(64,0,0)
+    GREEN=(0,32,0)
+    BLUE=(0,0,64)
+    YELLOW=(64,64,0)
+    PURPLE=(64,0,64)
+    np = None
+
+    def __init__(self):
+        _pin_np = Pin(cfg.NEOPIXEL_PIN, Pin.OUT)        # set to output to drive NeoPixels
+        self.np = NeoPixel(_pin_np, 3)                  # create NeoPixel driver for 3 pixels
+        self.np.write()
+
+    def update(self, n:int=2, color: tuple=(64,64,64)):
+        if self.np:
+            self.np[n]=color    #pylint: disable= unsupported-assignment-operation
+            self.np.write()
+
+    def clear(self, color: tuple=(0,0,0)):
+        for n in range(3):
+            self.np[n]=color    #pylint: disable= unsupported-assignment-operation
+            self.np.write()

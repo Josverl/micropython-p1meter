@@ -7,7 +7,7 @@ from machine import unique_id, Pin
 DEBUG = True
 
 # Base SSID to connect to
-homenet = {'SSID': 'IoT_T', 'password': 'MicroPython'}
+homenet = {'SSID': 'IoT', 'password': 'MicroPython'}
 
 #the mqtt broker to connect to
 broker = {'server': 'homeassistant.local', 'user': 'sensor', 'password': 'SensorPassport'}
@@ -26,25 +26,16 @@ publish_as_json = False
 
 #------------------------------------------------
 # A few Leds - optional
-
-LED_PIN_RED = 13
-LED_PIN_YELLOW = 14
-LED_PIN_GREEN = 27
-LED_PIN_BLUE = 25
-
-
+# avoid 25 Speaker on M5Base 
+NEOPIXEL_PIN = const(13)
 
 
 #------------------------------------------------
 # run the simulator for testing (using TX_PIN_NR)
-# Set to False for normal operation
-ENABLE_SIM_PIN = const(18)
-sim_button = Pin(ENABLE_SIM_PIN, Pin.IN, Pin.PULL_UP) # enable internal pull-up resistor
-RUN_SIM = sim_button.value() == 0
+
+RUN_SIM = False
 #avoid overwiting production meter
-if RUN_SIM:
-    print('simulator button = {}, SIM = {}'.format(sim_button.value(),RUN_SIM ) )
-    ROOT_TOPIC = CLIENT_ID
+
 
 #------------------------------------------------
 

@@ -3,7 +3,7 @@ import ujson as json #used for deepcopy op dict
 import ure as re
 from machine import UART
 import uasyncio as asyncio
-from utilities import  led_toggle, crc16,  LED_BLUE
+from utilities import  crc16, Feedback
 
 from mqttclient import MQTTClient2
 from config import codetable
@@ -20,7 +20,7 @@ ______  __   ___  ___     _
 | |_/ /`| |  | .  . | ___| |_ ___ _ __ 
 |  __/  | |  | |\/| |/ _ \ __/ _ \ '__|
 | |    _| |_ | |  | |  __/ ||  __/ |   
-\_|    \___/ \_|  |_/\___|\__\___|_|     v 0.9.0
+\_|    \___/ \_|  |_/\___|\__\___|_|     v 0.9.5
 """)
 
 def dictcopy(d : dict):
@@ -47,7 +47,7 @@ class P1Meter():
     """
     P1 meter to take readings from a Dutch electricity meter and publish them on mqtt for consumption by homeassistant
     """
-    def __init__(self, rx :int ,tx :int,mq_client :MQTTClient2):
+    def __init__(self, rx :int ,tx :int,mq_client :MQTTClient2, fb:Feedback):
         # init port for receiving 115200 Baud 8N1 using inverted polarity in RX/TX
 
         self.uart = UART(   1, rx=rx, tx=tx,
@@ -58,11 +58,13 @@ class P1Meter():
         self.last = []
         self.message = ''
         self.mqtt_client = mq_client
+        self.fb=fb
 
     def clearlast(self)-> None:
         "trigger sending the complete next telegram by forgetting the previous"
         log.warning("trigger sending the complete next telegram by forgetting the previous")
         self.last = []
+        self.fb.update(Feedback.L_P1, Feedback.PURPLE)
 
     async def receive(self):
         "Receive telegrams from the p1 meter and send them once received"
@@ -123,8 +125,10 @@ class P1Meter():
     async def process(self, tele:dict):
         # check CRC
         if not self.crc_ok( tele, ) :
+            self.fb.update(Feedback.L_P1, Feedback.RED)
             return
-        led_toggle(LED_BLUE)
+        self.fb.update(Feedback.L_P1, Feedback.BLUE)
+ 
         # what has changed since last time ?
         newdata= set(tele['data']) - set(self.last)
 
@@ -156,4 +160,7 @@ class P1Meter():
         if await self.mqtt_client.publish_readings(readings):
             # only safe last if mqtt publish was ok
             self.last = tele['data'].copy()
+            self.fb.update(Feedback.L_P1, Feedback.GREEN)
+        else:
+            self.fb.update(Feedback.L_P1, Feedback.YELLOW)
 

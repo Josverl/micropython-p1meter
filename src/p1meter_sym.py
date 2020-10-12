@@ -4,7 +4,7 @@ import logging
 import random
 from machine import UART
 import uasyncio as asyncio
-from utilities import crc16, led_toggle,  LED_RED
+from utilities import crc16, Feedback
 from mqttclient import MQTTClient2
 from config import ROOT_TOPIC
 
@@ -23,12 +23,13 @@ class P1MeterSIM():
     """
     P1 meter to fake a Dutch electricity meter and generate some reading to test the rest of the software
     """
-    def __init__(self, uart:UART, mq_client :MQTTClient2):
+    def __init__(self, uart:UART, mq_client :MQTTClient2, fb:Feedback):
         # do not re-init port for sim
         self.uart = uart
         # self.telegram = template
         self.messages = 0
         self.mqtt_client = mq_client
+        self.fb = fb
 
     async def sender(self, interval :int = 5):
         """
@@ -37,7 +38,7 @@ class P1MeterSIM():
         """
         swriter = asyncio.StreamWriter(self.uart, {})
         while True:
-            led_toggle(LED_RED,10)
+            self.fb.update(Feedback.L_P1, Feedback.PURPLE)
             log.warning('send simulated telegram')
             telegram = self.fake_message()
             if VERBOSE: 
@@ -47,6 +48,8 @@ class P1MeterSIM():
             self.messages += 1
             await asyncio.sleep_ms(1)
             self.mqtt_client.publish_one(ROOT_TOPIC + b"/sensor/simulator", str(self.messages))   #todo: root ROOT_TOPIC
+            self.fb.update(Feedback.L_P1, Feedback.BLACK)
+
             await asyncio.sleep(interval)
 
     def fake_message(self):
