@@ -1,12 +1,13 @@
 import gc
 import logging
+import time
+import machine
 import uasyncio as asyncio
 from p1meter import P1Meter
 import wifi
 from mqttclient import MQTTClient2 # ensure_mqtt_connected, publish_one
 from config import ROOT_TOPIC, RX_PIN_NR, TX_PIN_NR, RUN_SIM, CLIENT_ID
 from utilities import cpu_temp, led_control, LED_GREEN, LED_RED, LED_YELLOW
-
 
 if RUN_SIM:
     from p1meter_sym import P1MeterSIM
@@ -97,4 +98,9 @@ finally:
     log.info("Clear async loop retained state")
     asyncio.new_event_loop()  # Clear retained state
 
-    #TODO: reboot after x seconds stopped when in production
+# reboot after x seconds stopped when in production
+if not RUN_SIM:
+    log.warning('Rebooting in 20 seconds, Ctrl-C to abort')
+    time.sleep(20)
+    log.warning('Rebooting now...')
+    machine.reset()
