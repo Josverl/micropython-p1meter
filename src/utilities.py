@@ -42,7 +42,7 @@ def cpu_temp()->float:
 led_pins = ( cfg.LED_PIN_RED, cfg.LED_PIN_YELLOW, cfg.LED_PIN_GREEN, cfg.LED_PIN_BLUE)
 #     machine.Pin(pin, machine.Pin.OUT)
 
-leds = [machine.PWM(machine.Pin(pin), freq=2000, duty=0) for pin in led_pins ]
+leds = [machine.PWM(machine.Pin(pin), freq=8000, duty=0) for pin in led_pins ]
 # yellow, green , red , blue
 LED_RED = 0
 LED_YELLOW = 1

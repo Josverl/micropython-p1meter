@@ -14,6 +14,15 @@ log = logging.getLogger('p1meter')
 log.level = max( logging.DEBUG , logging._level) #pylint: disable=protected-access
 VERBOSE = False
 
+print(r"""
+______  __   ___  ___     _            
+| ___ \/  |  |  \/  |    | |           
+| |_/ /`| |  | .  . | ___| |_ ___ _ __ 
+|  __/  | |  | |\/| |/ _ \ __/ _ \ '__|
+| |    _| |_ | |  | |  __/ ||  __/ |   
+\_|    \___/ \_|  |_/\___|\__\___|_|     v 0.9.0
+""")
+
 def dictcopy(d : dict):
     "returns a copy of a dict using copy though json"
     return json.loads(json.dumps(d))
@@ -49,6 +58,11 @@ class P1Meter():
         self.last = []
         self.message = ''
         self.mqtt_client = mq_client
+
+    def clearlast(self)-> None:
+        "trigger sending the complete next telegram by forgetting the previous"
+        log.warning("trigger sending the complete next telegram by forgetting the previous")
+        self.last = []
 
     async def receive(self):
         "Receive telegrams from the p1 meter and send them once received"

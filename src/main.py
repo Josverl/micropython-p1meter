@@ -50,6 +50,11 @@ async def update_leds():
         # led_control(LED_BLUE, bright if len(glb_p1_meter.last)>0 else 0)
         await asyncio.sleep_ms(200)
 
+async def trigger_all(interval:int=300):
+    "trigger the sending of the complete next telegram every 5 minutes"
+    while 1:
+        glb_p1_meter.clearlast()
+        await asyncio.sleep(interval)    
 
 async def main(mq_client):
     # debug aid
@@ -67,6 +72,9 @@ async def main(mq_client):
 
     # start receiver
     asyncio.create_task(glb_p1_meter.receive())
+
+    asyncio.create_task(trigger_all())
+
     # run memory maintenance task
     asyncio.create_task(maintain_memory())
     while True:

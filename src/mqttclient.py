@@ -13,7 +13,7 @@ from config import broker , publish_as_json, CLIENT_ID, ROOT_TOPIC
 
 # Logging
 log = logging.getLogger('mqttclient')
-
+VERBOSE = False
 class MQTTClient2(object):
     """
     docstring
@@ -44,7 +44,8 @@ class MQTTClient2(object):
             state = False
 
         if not state:
-            log.warning('mqtt not healthy')
+            if VERBOSE:
+                log.warning('mqtt not healthy')
             # todo: trigger reconnect ?
         return state
 
