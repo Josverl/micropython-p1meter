@@ -8,18 +8,22 @@
 The ESP UART 1 is used to connect to whatever pin you specify in config.py 
 this allows normal functionality to use the USB port (UART 0) for configuration and monitoring of the ESP32.
 
+The RJ12 connector in the electricity meter uses the following layout 
 ![Rj12](docs/rj-12.png)
 
 Connect the ESP32 to an RJ12 cable/connector following the diagram.
 
-| P1 pin        | ESP32 Pin | color   | comments
-| --------------| ----------| --------|--------
-| 1 - 5v out    | 5v or Vin | red     | optional. max 250 mA When using a 6 pin cable you can use the power source provided by the meter.
-| 2 - RTS       | 3.3v      | blue    |
-| 3 - Data GND  | GND       | black   | 
-| 4 - -         | -         |         | 
-| 5 - RXD (data)| gpio2     | yellow  | 10k pull-up recommended (internal / external) 
-| 6 - Power GND | -         |         |
+### connection via straight 4/6 wire cable :
+Note that this will reverse the pin numbers on the female connector that you are using
+
+| RJ12 P1       | cable|RJ12 Meter| ESP32 Pin | color     | 4w test cable | comments
+| --------------|----- |----------| ----------| ----------|---------------|------------
+| 1 - 5v out    | ---> | 6        | 5v or Vin |           |               | [Optional]. max 250 mA When using a 6 pin cable you can use the power source provided by the meter.
+| 2 - CTS       | <--- | 5        | gpio-5    | blue      |  zwart        | Clear to Send,  High = allow P1 Meter to send data
+| 3 - Data GND  | <--> | 4        | GND       | black     |  rood         | 
+| 4 - -         |      | 3        | -         |           |  groen        | 
+| 5 - RXD (data)| ---> | 2        | gpio-2    | yellow    |  geel         | 1K external pull-up resistor needed
+| 6 - Power GND | ---- | 1        | GND       |           |               | [Optional]
 
 ## install 
  - git clone
@@ -33,13 +37,13 @@ Connect the ESP32 to an RJ12 cable/connector following the diagram.
 
 ## connection / operation
 
-Leds :
-|pin  | color | meaning
-|-----|-------|-----------
-|     | Red   | ON : something is wrong 
-|     | Green | ON: connected to WLAN
-|     | Yellow| ON: Connected to MQTT broker
-|     | Blue  | Blink : toggles when a complete datagram was received 
+3 Neopixel Leds (top to bottom):
+
+|led| purpose | Red           | Green                    | other
+|---|---------|---------------|--------------------------|---
+| 2 | P1 meter| CRC Error     | CRC OK                   | **Blue**: data received , **Purple** : Simulator sending Data
+| 1 | mqtt    | Not connected | Connected to MQTT broker | **Yellow**: Data could not be send to Broker
+| 0 | wifi    | Not connected | IP address acquired      |
 
 ## configuration file 
 
@@ -51,6 +55,7 @@ Please adjust the relevant settings in [config.py](src/config.py)
 # TX pin is only used for testing/simulation but needs to be specified
 RX_PIN_NR = const(2)
 TX_PIN_NR = const(15)
+RTS_PIN_NR = const(5)
 
 # Base SSID to connect to
 homenet = {'SSID': 'IoT', 'password': 'MicroPython'}

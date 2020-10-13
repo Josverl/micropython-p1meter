@@ -1,12 +1,13 @@
 import logging
 import ujson as json #used for deepcopy op dict
 import ure as re
-from machine import UART
+from machine import UART, Pin
 import uasyncio as asyncio
 from utilities import  crc16, Feedback
 
 from mqttclient import MQTTClient2
-from config import codetable
+import config as cfg
+
 
 # Logging
 log = logging.getLogger('p1meter')
@@ -20,7 +21,7 @@ ______  __   ___  ___     _
 | |_/ /`| |  | .  . | ___| |_ ___ _ __ 
 |  __/  | |  | |\/| |/ _ \ __/ _ \ '__|
 | |    _| |_ | |  | |  __/ ||  __/ |   
-\_|    \___/ \_|  |_/\___|\__\___|_|     v 0.9.5
+\_|    \___/ \_|  |_/\___|\__\___|_|     v 1.0.0
 """)
 
 def dictcopy(d : dict):
@@ -32,7 +33,7 @@ def dictcopy(d : dict):
 def replace_codes(readings :list)-> list :
     "replace the OBIS codes by their ROOT_TOPIC as defined in the codetable"
     for reading in readings:
-        for code in codetable:
+        for code in cfg.codetable:
             if re.match(code[0],reading['meter']):
                 reading['meter'] = re.sub(code[0], code[1], reading['meter'])
 
@@ -47,10 +48,10 @@ class P1Meter():
     """
     P1 meter to take readings from a Dutch electricity meter and publish them on mqtt for consumption by homeassistant
     """
-    def __init__(self, rx :int ,tx :int,mq_client :MQTTClient2, fb:Feedback):
+    def __init__(self, mq_client :MQTTClient2, fb:Feedback):
         # init port for receiving 115200 Baud 8N1 using inverted polarity in RX/TX
 
-        self.uart = UART(   1, rx=rx, tx=tx,
+        self.uart = UART(   1, rx=cfg.RX_PIN_NR, tx= cfg.TX_PIN_NR,
                             baudrate=115200,  bits=8, parity=None,
                             stop=1 , invert=UART.INV_RX | UART.INV_TX,
                             txbuf=2048, rxbuf=2048)                     # larger buffer for testing and stability
@@ -59,12 +60,16 @@ class P1Meter():
         self.message = ''
         self.mqtt_client = mq_client
         self.fb=fb
+        # set CTS/RTS High
+        self.cts = Pin(cfg.CTS_PIN_NR, Pin.OUT)
+        self.cts.on()                 # Ask P1 meter to send data
 
     def clearlast(self)-> None:
         "trigger sending the complete next telegram by forgetting the previous"
-        log.warning("trigger sending the complete next telegram by forgetting the previous")
-        self.last = []
-        self.fb.update(Feedback.L_P1, Feedback.PURPLE)
+        if len(self.last) > 0:
+            log.warning("trigger sending the complete next telegram by forgetting the previous")
+            self.last = []
+            self.fb.update(Feedback.L_P1, Feedback.PURPLE)
 
     async def receive(self):
         "Receive telegrams from the p1 meter and send them once received"
@@ -163,4 +168,5 @@ class P1Meter():
             self.fb.update(Feedback.L_P1, Feedback.GREEN)
         else:
             self.fb.update(Feedback.L_P1, Feedback.YELLOW)
+            self.fb.update(Feedback.L_MQTT, Feedback.YELLOW)
 

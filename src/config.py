@@ -4,7 +4,7 @@ from micropython import const
 from  ubinascii import  hexlify
 from machine import unique_id, Pin
 
-DEBUG = True
+
 
 # Base SSID to connect to
 homenet = {'SSID': 'IoT', 'password': 'MicroPython'}
@@ -20,6 +20,7 @@ ROOT_TOPIC = b"p1_meter"
 # TX pin is only used for testing/simulation but needs to be specified
 RX_PIN_NR = const(2)
 TX_PIN_NR = const(15)
+CTS_PIN_NR = const(5)
 
 #also publish telegram as json
 publish_as_json = False
@@ -31,11 +32,11 @@ NEOPIXEL_PIN = const(13)
 
 
 #------------------------------------------------
+# governs the overall debug logging 
+DEBUG = False
+#------------------------------------------------
 # run the simulator for testing (using TX_PIN_NR)
-
 RUN_SIM = False
-#avoid overwiting production meter
-
 
 #------------------------------------------------
 
@@ -45,7 +46,6 @@ RUN_SIM = False
 #     - the replacement string or regex
 #         ("1-0:1.7.0","actual_consumption")                  # string replacement
 #         ("(\d)-0:1.7.0","actual_consumption\device_\\1")    # regex replacement
-
 # Note:
 #     For readability the periods `.` have been used in the regex match strings.
 #     While in the regex syntax the `.` will match any character, this does not cause any issues in practice.

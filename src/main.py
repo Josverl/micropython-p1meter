@@ -87,26 +87,31 @@ async def main(mq_client):
         await asyncio.sleep(1)
 
 ###############################################################################
-try:
-    log.info('micropython p1 meter is starting...')
 
-    glb_mqtt_client = MQTTClient2()
-    glb_p1_meter = P1Meter(RX_PIN_NR,TX_PIN_NR,mq_client=glb_mqtt_client ,fb=fb)
-    fb.clear()
-    asyncio.run(main(glb_mqtt_client))
-finally:
-    # status 
-    fb.clear(fb.RED)
 
-    log.info("Clear async loop retained state")
-    asyncio.new_event_loop()  # Clear retained state
+glb_mqtt_client = MQTTClient2()
+glb_p1_meter = P1Meter(mq_client=glb_mqtt_client ,fb=fb)
 
-# reboot after x seconds stopped when in production
-if not RUN_SIM:
-    log.warning('Rebooting in 15 seconds, Ctrl-C to abort')
-    for n in range(3):
-        fb.update(n,fb.PURPLE)
-        time.sleep(15)
-        fb.update(n,fb.BLUE)
-    log.warning('Rebooting now...')
-    machine.reset()
+def run():
+    try:
+        log.info('micropython p1 meter is starting...')
+        fb.clear()
+        asyncio.run(main(glb_mqtt_client))
+    finally:
+        # status 
+        fb.clear(fb.RED)
+
+        log.info("Clear async loop retained state")
+        asyncio.new_event_loop()  # Clear retained state
+
+    # reboot after x seconds stopped when in production
+    if not RUN_SIM:
+        log.warning('Rebooting in 15 seconds, Ctrl-C to abort')
+        for n in range(3):
+            fb.update(n,fb.PURPLE)
+            time.sleep(15)
+            fb.update(n,fb.BLUE)
+        log.warning('Rebooting now...')
+        machine.reset()
+
+run()

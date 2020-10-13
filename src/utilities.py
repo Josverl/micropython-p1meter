@@ -54,7 +54,7 @@ class Feedback():
     BLACK=(0,0,0)
     WHITE=(20,20,20)
     RED=(64,0,0)
-    GREEN=(0,32,0)
+    GREEN=(2,16,2)      # dim green
     BLUE=(0,0,64)
     YELLOW=(64,64,0)
     PURPLE=(64,0,64)
