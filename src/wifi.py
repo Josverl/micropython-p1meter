@@ -34,8 +34,8 @@ def activate():
     # connect to a known WiFi ( from config file)
     if not wlan.active():
         wlan.active(True)
+        wlan.config(dhcp_hostname=cfg.NETWORK_ID)
     if not wlan.isconnected():
-        wlan.config(dhcp_hostname=cfg.CLIENT_ID)
         log.info("Activating Wlan {0}".format(cfg.homenet['SSID']))
         wlan.connect(cfg.homenet['SSID'], cfg.homenet['password'])
 
@@ -71,7 +71,7 @@ async def connect_as():
             cause = 'cannot find SSID'
         #deactivate ( to re-activate later)
         wlan.active(False)
-        log.error("Unable to connect to Wlan {}; {}".format(homenet['SSID'], cause ))
+        log.error("Unable to connect to Wlan {}; {}".format(cfg.homenet['SSID'], cause ))
 
 
 def log_ifconfig():
