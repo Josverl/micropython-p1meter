@@ -2,20 +2,25 @@
     "python.linting.enabled": true,
     "python.jediEnabled": false,
     "python.autoComplete.extraPaths": [
-        "src/lib",
+        ".src/lib",
         ".micropy\\esp32_p1_meter",
+        ".micropy\\cpython_patch",
         ".micropy\\BradenM-micropy-stubs-9569403\\frozen",
         ".micropy\\BradenM-micropy-stubs-452a204\\frozen",
         ".micropy\\esp32_1_13_0",
     ],
     "python.autoComplete.typeshedPaths": [
+        ".src/lib",
         ".micropy\\esp32_p1_meter",
+        ".micropy\\cpython_patch",
         ".micropy\\BradenM-micropy-stubs-9569403\\frozen",
         ".micropy\\BradenM-micropy-stubs-452a204\\frozen",
         "..micropy\\esp32_1_13_0",
     ],
     "python.analysis.typeshedPaths": [
+        ".src/lib",
         ".micropy\\esp32_p1_meter",
+        ".micropy\\cpython_patch",
         ".micropy\\BradenM-micropy-stubs-9569403\\frozen",
         ".micropy\\BradenM-micropy-stubs-452a204\\frozen",
         ".micropy\\esp32_1_13_0",
@@ -23,24 +28,19 @@
     "python.linting.pylintEnabled": true,
     "python.languageServer": "Microsoft",
     "restructuredtext.confPath": "",
-    "files.associations": {
-        "*.yaml": "home-assistant"
-    },
     "python.linting.mypyCategorySeverity.error": "Warning",
     "cSpell.words": [
         "LOLIN",
         "Prereqs",
         "beepbeep",
+        "getntptime",
         "homenet",
         "levelno",
         "mqttclient",
         "nospiram",
+        "ntptime",
         "rxbuf",
         "sreader",
         "txbuf"
-    ],
-    "cSpell.enableFiletypes": [
-        "!php",
-        "shellscript"
     ]
 }
