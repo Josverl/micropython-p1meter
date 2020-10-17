@@ -71,28 +71,29 @@ async def connect_as():
             cause = 'cannot find SSID'
         #deactivate ( to re-activate later)
         wlan.active(False)
+        wlan_stable = False
         log.error("Unable to connect to Wlan {}; {}".format(cfg.homenet['SSID'], cause ))
 
 
 def log_ifconfig():
     # prettyprint the interface's IP/netmask/gw/DNS addresses
     config = wlan.ifconfig()
-    log.info("Connected to Wifi with IP:{0}, Network mask:{1}, Router:{2}, DNS: {3}".format( *config ))
+    log.info("Wifi IP:{0}, Network mask:{1}, Router:{2}, DNS: {3}".format( *config ))
 
 
-async def check_stable(duration: int = 2000):
+async def check_stable(duration: int = 2000)->bool:
     global wlan_stable
     t = time.ticks_ms()
     log.info('Checking WiFi stability for {} ms'.format(duration))
     # Timeout ensures stable WiFi and forces minimum outage duration
     while wlan.isconnected() and time.ticks_diff(time.ticks_ms(), t) < duration:
         await asyncio.sleep_ms(10)
-    wlan_stable = wlan.isconnected()
+    # connected and IP
+    wlan_stable = wlan.isconnected() and wlan.status() == network.STAT_GOT_IP
     try:
         log.info('webrepl and ftp server starting')
-        webrepl.start()
+        webrepl.start(password='4242')      # todo: move password to config
         uftpd.restart()
-        # webrepl.start(password='1234')
     except OSError as e:
         log.warning('Unable to start webrepl {}'.format(e))
     return wlan_stable
