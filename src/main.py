@@ -6,12 +6,11 @@ import uasyncio as asyncio
 from p1meter import P1Meter
 import wifi
 from mqttclient import MQTTClient2 # ensure_mqtt_connected, publish_one
-from config import ROOT_TOPIC, RX_PIN_NR, TX_PIN_NR, RUN_SIM, CLIENT_ID
+from config import ROOT_TOPIC, RX_PIN_NR, TX_PIN_NR, RUN_SIM, NETWORK_ID
 
 from utilities import cpu_temp, Feedback
 
 if RUN_SIM:
-    ROOT_TOPIC = CLIENT_ID      # avoid overwiting actual data
     from p1meter_sym import P1MeterSIM
 
 # Logging
@@ -36,7 +35,7 @@ async def maintain_memory(interval :int=600 ):
         log.debug( "freed: {0:,} - now free: {1:,}".format( after-before , after ).replace(',','.') ) # EU Style : use . as a thousands seperator
         glb_mqtt_client.publish_one(ROOT_TOPIC + b"/sensor/mem_free", str(after) )
         glb_mqtt_client.publish_one(ROOT_TOPIC + b"/sensor/cpu_temp", str(cpu_temp()) )
-        glb_mqtt_client.publish_one(ROOT_TOPIC + b"/sensor/client_id", CLIENT_ID )
+        glb_mqtt_client.publish_one(ROOT_TOPIC + b"/sensor/client_id", NETWORK_ID )
         await asyncio.sleep(interval)
 
 async def update_leds():
@@ -104,12 +103,11 @@ def run():
         log.info("Clear async loop retained state")
         asyncio.new_event_loop()  # Clear retained state
 
-    # reboot after x seconds stopped when in production
-    if not RUN_SIM:
+        # reboot after x seconds stopped when in production
         log.warning('Rebooting in 15 seconds, Ctrl-C to abort')
         for n in range(3):
             fb.update(n,fb.PURPLE)
-            time.sleep(15)
+            time.sleep(10)
             fb.update(n,fb.BLUE)
         log.warning('Rebooting now...')
         machine.reset()

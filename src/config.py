@@ -4,6 +4,12 @@ from micropython import const
 from  ubinascii import  hexlify
 from machine import unique_id, Pin
 
+#------------------------------------------------
+# governs the overall debug logging 
+DEBUG = False
+#------------------------------------------------
+# run the simulator for testing (using TX_PIN_NR)
+RUN_SIM = False
 
 
 # Base SSID to connect to
@@ -12,9 +18,14 @@ homenet = {'SSID': 'IoT', 'password': 'MicroPython'}
 #the mqtt broker to connect to
 broker = {'server': 'homeassistant.local', 'user': 'sensor', 'password': 'SensorPassport'}
 
-CLIENT_ID = b'p1_meter_' + hexlify(unique_id())[-6:]
+#Network ID
+NETWORK_ID = b'p1_meter'
 
-ROOT_TOPIC = b"p1_meter"
+if RUN_SIM:
+    NETWORK_ID += b'_' + hexlify(unique_id())[-6:]
+
+#MQTT topic follows network ID
+ROOT_TOPIC = NETWORK_ID
 
 # Serial Pins for meter connection
 # TX pin is only used for testing/simulation but needs to be specified
@@ -31,12 +42,6 @@ publish_as_json = False
 NEOPIXEL_PIN = const(13)
 
 
-#------------------------------------------------
-# governs the overall debug logging 
-DEBUG = False
-#------------------------------------------------
-# run the simulator for testing (using TX_PIN_NR)
-RUN_SIM = False
 
 #------------------------------------------------
 
