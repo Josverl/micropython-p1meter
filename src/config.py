@@ -2,15 +2,18 @@
 
 from micropython import const
 from  ubinascii import  hexlify
-from machine import unique_id, Pin
+from machine import unique_id
 
 #------------------------------------------------
 # governs the overall debug logging 
-DEBUG = False
+DEBUG = True
 #------------------------------------------------
 # run the simulator for testing (using TX_PIN_NR)
 RUN_SIM = False
 
+#autodetect my test ESP32 - M5
+if hexlify(unique_id())[-6:] == b'2598b4':
+    RUN_SIM = True
 
 # Base SSID to connect to
 homenet = {'SSID': 'IoT', 'password': 'MicroPython'}
@@ -30,7 +33,7 @@ ROOT_TOPIC = NETWORK_ID
 # Serial Pins for meter connection
 # TX pin is only used for testing/simulation but needs to be specified
 RX_PIN_NR = const(2)
-TX_PIN_NR = const(15)
+TX_PIN_NR = const(18)
 CTS_PIN_NR = const(5)
 
 #also publish telegram as json
