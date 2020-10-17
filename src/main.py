@@ -1,3 +1,4 @@
+#pylint: disable=no-member      ## workaround for sys and gc
 import gc
 import logging
 import time
@@ -5,10 +6,11 @@ import machine
 import uasyncio as asyncio
 from p1meter import P1Meter
 import wifi
-from mqttclient import MQTTClient2 # ensure_mqtt_connected, publish_one
-from config import ROOT_TOPIC, RX_PIN_NR, TX_PIN_NR, RUN_SIM, NETWORK_ID
+import ntptime2 as ntptime
+from mqttclient import MQTTClient2
+from config import ROOT_TOPIC, RUN_SIM, NETWORK_ID
 
-from utilities import cpu_temp, Feedback
+from utilities import cpu_temp, Feedback, reboot
 
 if RUN_SIM:
     from p1meter_sym import P1MeterSIM
@@ -42,7 +44,7 @@ async def update_leds():
     "set the leds to reflect the state of the main components"
     while 1:
         # wifi led
-        if (wifi.wlan.status() == wifi.network.STAT_GOT_IP):
+        if wifi.wlan.status() == wifi.network.STAT_GOT_IP:
             fb.update(fb.L_NET, fb.GREEN)
         else:
             fb.update(fb.L_NET, fb.RED)
@@ -61,6 +63,18 @@ async def trigger_all(interval:int=300):
         await asyncio.sleep(interval)    
         glb_p1_meter.clearlast()
 
+async def ntp_sync(t=600):
+    "sync time from ntp periodically"
+    while True:
+        try:
+            # todo: DST
+            ntptime.settime(tzoffset=-1) # set the rtc datetime from the remote server
+            log.info("fresh time: {}".format(time.localtime()))
+        except OSError:
+            # OSError: [Errno 110] ETIMEDOUT
+            pass
+        await asyncio.sleep(t)
+
 async def main(mq_client):
     # debug aid
     log.info("Set up main tasks")
@@ -69,6 +83,7 @@ async def main(mq_client):
     asyncio.create_task(update_leds())
     # connect to wifi and mqtt broker
     asyncio.create_task(wifi.ensure_connected())
+    asyncio.create_task(ntp_sync())
     asyncio.create_task(mq_client.ensure_mqtt_connected())
     if RUN_SIM:
         # SIMULATION: simulate meter input on this machine
@@ -103,13 +118,7 @@ def run():
         log.info("Clear async loop retained state")
         asyncio.new_event_loop()  # Clear retained state
 
-        # reboot after x seconds stopped when in production
-        log.warning('Rebooting in 15 seconds, Ctrl-C to abort')
-        for n in range(3):
-            fb.update(n,fb.PURPLE)
-            time.sleep(10)
-            fb.update(n,fb.BLUE)
-        log.warning('Rebooting now...')
-        machine.reset()
+        reboot(10)
+
 
 run()
