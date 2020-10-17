@@ -21,8 +21,8 @@ import socket
 import network
 import uos
 import gc
-from time import sleep_ms, localtime
-from micropython import alloc_emergency_exception_buf
+from utime import sleep_ms, localtime
+from micropython import alloc_emergency_exception_buf, const
 
 # constant definitions
 _CHUNK_SIZE = const(1024)
@@ -64,7 +64,7 @@ class FTP_client:
         self.DATA_PORT = 20
         self.active = True
         # check which interface was used by comparing the caller's ip
-        # adress with the ip adresses of STA and AP; consider netmask;
+        # address with the ip addresses of STA and AP; consider netmask;
         # select IP address for passive mode
         if ((AP_addr[1] & AP_addr[2]) ==
            (num_ip(self.remote_addr) & AP_addr[2])):
