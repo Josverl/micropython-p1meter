@@ -53,7 +53,7 @@ async def update_leds():
         else:
             fb.update(fb.L_MQTT, fb.RED)
 
-        await asyncio.sleep_ms(200)
+        await asyncio.sleep(1)
 
 async def trigger_all(interval:int=300):
     "trigger the sending of the complete next telegram every 5 minutes"

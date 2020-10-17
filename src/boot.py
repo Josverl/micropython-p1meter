@@ -2,9 +2,10 @@
 # boot.py - - runs on boot-up
 # pylint: disable= wrong-import-position, wrong-import-order
 import sys  # pylint: disable=wrong-import-position
-import esp
 sys.path.insert(1, '/lib')
 
+import machine
+import esp
 import logging
 from config import DEBUG
 
@@ -39,7 +40,6 @@ class LogFormatter(logging.Handler):
 logging.getLogger().addHandler(LogFormatter())
 
 
-# WiFI: no need to init wifi,it is established by an async task
 
 if DEBUG:
     # esp.osdebug(0)          # redirect vendor O/S debugging messages to UART(0)
@@ -52,3 +52,7 @@ else:
     esp.osdebug(0, esp.LOG_ERROR)   # show errors only
     logging.basicConfig(level=logging.INFO)
 
+# WiFI: no need to init wifi,it is established by an async task
+
+# log.info("Set clock frequency to 80Mhz")
+# machine.freq(80*1000000)
