@@ -10,6 +10,7 @@ from umqtt.simple import MQTTClient, MQTTException
 from wifi import wlan, wlan_stable
 
 from config import broker , publish_as_json, NETWORK_ID, ROOT_TOPIC
+from utilities import reboot
 
 # Logging
 log = logging.getLogger('mqttclient')
@@ -77,8 +78,12 @@ class MQTTClient2(object):
                     else:
                         log.error("{} {}".format(type(e).__name__, e ) )
                 else:
+                    ## OSError
                     if e.args[0] in (113, 23) : # EHOSTUNREACH
                         log.error("OS Error {}: {}".format(e, "Host unreachable, check server address or network"))
+                    elif e.args[0] < 0 : # some negative socket error
+                        log.error("OS Error {}: {}".format(e, "attempting reboot to fix"))
+                        reboot()
                     else:
                         log.error("{} {}".format(type(e).__name__, e ) )
         else:
