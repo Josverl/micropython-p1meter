@@ -2,15 +2,13 @@
 import gc
 import logging
 import time
-import machine
 import uasyncio as asyncio
 from p1meter import P1Meter
 import wifi
-import ntptime2 as ntptime
 from mqttclient import MQTTClient2
 from config import ROOT_TOPIC, RUN_SIM, NETWORK_ID
 
-from utilities import cpu_temp, Feedback, reboot
+from utilities import cpu_temp, Feedback, reboot, getntptime
 
 if RUN_SIM:
     from p1meter_sym import P1MeterSIM
@@ -67,9 +65,8 @@ async def ntp_sync(t=600):
     "sync time from ntp periodically"
     while True:
         try:
-            # todo: DST
-            ntptime.settime(tzoffset=-1) # set the rtc datetime from the remote server
-            log.info("fresh time: {}".format(time.localtime()))
+            getntptime()
+            log.info("fresh time: {2}-{1}-{0} {3}:{4}:{5}".format(*time.localtime()))
         except OSError:
             # OSError: [Errno 110] ETIMEDOUT
             pass
