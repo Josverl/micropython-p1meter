@@ -4,7 +4,6 @@
 import sys  # pylint: disable=wrong-import-position
 sys.path.insert(1, '/lib')
 
-import machine
 import esp
 import logging
 from config import DEBUG

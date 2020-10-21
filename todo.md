@@ -10,6 +10,16 @@
       ? leds on / off in normal operation
       ? leds automatically off after 10 minutes to aid in troubleshooting on startup 
 
+
+testen / documenteren , dit zou in 1.13 moeten zitten
+esp32: Add support for mDNS queries and responder.
+They are both enabled by default, but can be disabled by defining
+MICROPY_HW_ENABLE_MDNS_QUERIES and/or MICROPY_HW_ENABLE_MDNS_RESPONDER to
+0.  The hostname for the responder is currently taken from
+tcpip_adapter_get_hostname() but should eventually be configurable.
+
+
+
  - [x] build case for meter 
  - [x] periodically send all readings ( per minute / hour ? configurable)
  - [ ] also publish the ident from the header 
@@ -30,6 +40,8 @@
        
 ```
 mqtt client:  
+ - [ ] the readings stay the same if the meter goes offline - how to deal with this 
+ 
  - [ ] switch to more stable MQTT lib
  - [ ] clear last sent state on mqtt reconnect to force sending all
  - [ ] use wlan.wlan_stable flag to determine network connection
@@ -44,6 +56,9 @@ mqtt client:
  - [x] refactor to class to get rid of global
  - [x] detect mqtt issues on sending and disconnect / reconnect
  - [?] add queue of messages to send 
+
+
+
 
 
 Test cases : 

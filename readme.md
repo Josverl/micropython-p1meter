@@ -114,7 +114,7 @@ homenet = {'SSID': 'IoT', 'password': 'MicroPython'}
 #the mqtt broker to connect to
 broker = {'server': 'homeassistant.local', 'user': 'sensor', 'password': 'beepbeep'}
 
-CLIENT_ID = b'p1_meter_' + hexlify(unique_id())
+NETWORK_ID = b'p1_meter_' + hexlify(unique_id())
 ROOT_TOPIC = b"p1_meter"
 
 #also publish telegram as json

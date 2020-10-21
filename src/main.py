@@ -1,4 +1,5 @@
-#pylint: disable=no-member      ## workaround for sys and gc
+
+#import ugc as gc
 import gc
 import logging
 import time
@@ -18,9 +19,9 @@ log = logging.getLogger('main')
 fb = Feedback()
 
 def set_global_exception():
-    def handle_exception(loop, context):    # pylint: disable=unused-argument
-        import sys                          # pylint: disable=import-outside-toplevel
-        sys.print_exception(context["exception"])
+    def handle_exception(loop, context):            #pylint: disable=unused-argument
+        import sys                                  #pylint: disable=import-outside-toplevel
+        sys.print_exception(context["exception"])   #pylint: disable=no-member
         sys.exit()
     loop = asyncio.get_event_loop()
     loop.set_exception_handler(handle_exception)
@@ -28,10 +29,10 @@ def set_global_exception():
 async def maintain_memory(interval :int=600 ):
     "run GC at a 10 minute interval"
     while 1:
-        before = gc.mem_free()
+        before = gc.mem_free()                              #pylint: disable=no-member
         gc.collect()
-        gc.threshold(gc.mem_free() // 4 + gc.mem_alloc())
-        after = gc.mem_free()
+        gc.threshold(gc.mem_free() // 4 + gc.mem_alloc())   #pylint: disable=no-member
+        after = gc.mem_free()                               #pylint: disable=no-member
         log.debug( "freed: {0:,} - now free: {1:,}".format( after-before , after ).replace(',','.') ) # EU Style : use . as a thousands seperator
         glb_mqtt_client.publish_one(ROOT_TOPIC + b"/sensor/mem_free", str(after) )
         glb_mqtt_client.publish_one(ROOT_TOPIC + b"/sensor/cpu_temp", str(cpu_temp()) )

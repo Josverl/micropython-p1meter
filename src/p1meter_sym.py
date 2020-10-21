@@ -47,14 +47,14 @@ class P1MeterSIM():
             await swriter.drain()       # pylint: disable= not-callable
             self.messages += 1
             await asyncio.sleep_ms(1)
-            self.mqtt_client.publish_one(ROOT_TOPIC + b"/sensor/simulator", str(self.messages))   #todo: root ROOT_TOPIC
+            self.mqtt_client.publish_one(ROOT_TOPIC + b"/sensor/simulator", str(self.messages))
             self.fb.update(Feedback.L_P1, Feedback.BLACK)
 
             await asyncio.sleep(interval)
 
-    def fake_message(self):
+    @staticmethod
+    def fake_message():
         # Pick a template
-
         #msg = meter1
         msg = meter3
 
