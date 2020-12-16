@@ -10,6 +10,10 @@ DEBUG = True
 #------------------------------------------------
 # run the simulator for testing (using TX_PIN_NR)
 RUN_SIM = False
+#------------------------------------------------
+
+INTERVAL_MEM = 600      # force mem cleanup every 10 minutes
+INTERVAL_ALL = 300      # force sending all information at 5 m interval
 
 #autodetect my test ESP32 - M5
 if hexlify(unique_id())[-6:] == b'2598b4':
@@ -19,7 +23,9 @@ if hexlify(unique_id())[-6:] == b'2598b4':
 homenet = {'SSID': 'IoT', 'password': 'MicroPython'}
 
 #the mqtt broker to connect to
-broker = {'server': 'homeassistant.local', 'user': 'sensor', 'password': 'SensorPassport'}
+#broker = {'server': 'homeassistant.local', 'user': 'sensor', 'password': 'SensorPassport'}
+# Q&D Workaround for mDNS Failure 
+broker = {'server': '192.168.1.99', 'user': 'sensor', 'password': 'SensorPassport'}
 
 #Network ID
 NETWORK_ID = b'p1_meter'

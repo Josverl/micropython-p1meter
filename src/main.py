@@ -8,6 +8,7 @@ from p1meter import P1Meter
 import wifi
 from mqttclient import MQTTClient2
 from config import ROOT_TOPIC, RUN_SIM, NETWORK_ID
+from config import INTERVAL_MEM, INTERVAL_ALL
 
 from utilities import cpu_temp, Feedback, reboot, getntptime
 
@@ -26,17 +27,17 @@ def set_global_exception():
     loop = asyncio.get_event_loop()
     loop.set_exception_handler(handle_exception)
 
-async def maintain_memory(interval :int=600 ):
+async def maintain_memory(interval: int = INTERVAL_MEM):
     "run GC at a 10 minute interval"
     while 1:
         before = gc.mem_free()                              #pylint: disable=no-member
         gc.collect()
         gc.threshold(gc.mem_free() // 4 + gc.mem_alloc())   #pylint: disable=no-member
         after = gc.mem_free()                               #pylint: disable=no-member
-        log.debug( "freed: {0:,} - now free: {1:,}".format( after-before , after ).replace(',','.') ) # EU Style : use . as a thousands seperator
-        glb_mqtt_client.publish_one(ROOT_TOPIC + b"/sensor/mem_free", str(after) )
-        glb_mqtt_client.publish_one(ROOT_TOPIC + b"/sensor/cpu_temp", str(cpu_temp()) )
-        glb_mqtt_client.publish_one(ROOT_TOPIC + b"/sensor/client_id", NETWORK_ID )
+        log.debug("freed: {0:,} - now free: {1:,}".format(after-before, after).replace(',', '.')) # EU Style : use . as a thousands seperator
+        glb_mqtt_client.publish_one(ROOT_TOPIC + b"/sensor/mem_free", str(after))
+        glb_mqtt_client.publish_one(ROOT_TOPIC + b"/sensor/cpu_temp", str(cpu_temp()))
+        glb_mqtt_client.publish_one(ROOT_TOPIC + b"/sensor/client_id", NETWORK_ID)
         await asyncio.sleep(interval)
 
 async def update_leds():
@@ -56,10 +57,10 @@ async def update_leds():
 
         await asyncio.sleep(1)
 
-async def trigger_all(interval:int=300):
+async def trigger_all(interval: int = INTERVAL_ALL):
     "trigger the sending of the complete next telegram every 5 minutes"
     while 1:
-        await asyncio.sleep(interval)    
+        await asyncio.sleep(interval)
         glb_p1_meter.clearlast()
 
 async def ntp_sync(t=600):
@@ -85,7 +86,7 @@ async def main(mq_client):
     asyncio.create_task(mq_client.ensure_mqtt_connected())
     if RUN_SIM:
         # SIMULATION: simulate meter input on this machine
-        sim = P1MeterSIM(glb_p1_meter.uart, mq_client,fb)
+        sim = P1MeterSIM(glb_p1_meter.uart, mq_client, fb)
         asyncio.create_task(sim.sender(interval=10))
 
     # start receiver
@@ -102,7 +103,7 @@ async def main(mq_client):
 
 
 glb_mqtt_client = MQTTClient2()
-glb_p1_meter = P1Meter(mq_client=glb_mqtt_client ,fb=fb)
+glb_p1_meter = P1Meter(mq_client=glb_mqtt_client, fb=fb)
 
 def run():
     try:
@@ -110,7 +111,7 @@ def run():
         fb.clear()
         asyncio.run(main(glb_mqtt_client))
     finally:
-        # status 
+        # status
         fb.clear(fb.RED)
 
         log.info("Clear async loop retained state")
