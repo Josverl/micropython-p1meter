@@ -1,1 +1,3 @@
 scratch/*
+.pytest_cache
+all-stubs
