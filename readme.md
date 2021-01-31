@@ -38,7 +38,7 @@
  - git clone this repo
   - adjust config.py settings :
     - homenet : WiFi SSID and Password 
-    - broker : MQtt broker address, user and password
+    - broker : MQtt broker address, port, user and password
     - RX pins to connect to the P1 Port
     - Options (TX pin if you want to test drive without a connection to a P1 port)
  - upload code from /src folder to the board
