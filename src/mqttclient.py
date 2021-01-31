@@ -29,6 +29,10 @@ class MQTTClient2(object):
         self.user = broker['user']
         self.password = broker['password']
         self.ping_failed = 0
+        self.port = broker['port']
+
+
+
 
     def healthy(self) -> bool:
         "is the client healthy?"
@@ -86,7 +90,7 @@ class MQTTClient2(object):
         global _conn_errors
         if self.mqtt_client is None:
             log.info("create mqtt client {0}".format(self.server))
-            self.mqtt_client = MQTTClient(NETWORK_ID, self.server, user=self.user, password=self.password)
+            self.mqtt_client = MQTTClient(NETWORK_ID, self.server, port=self.port, user=self.user, password=self.password)
         if wlan.status() == network.STAT_GOT_IP:
             try:
                 print("connecting to mqtt server {0}".format(self.server))
