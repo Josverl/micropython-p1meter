@@ -24,8 +24,11 @@ homenet = {'SSID': 'IoT', 'password': 'MicroPython'}
 
 #the mqtt broker to connect to
 #broker = {'server': 'homeassistant.local', 'user': 'sensor', 'password': 'SensorPassport'}
-# Q&D Workaround for mDNS Failure 
+# Q&D Workaround for mDNS Failure
 broker = {'server': '192.168.1.99', 'user': 'sensor', 'password': 'SensorPassport'}
+
+# webrepl password: max 8 char length
+webrepl = {'active': True, 'password': "4242"}
 
 #Network ID
 NETWORK_ID = b'p1_meter'

@@ -5,7 +5,7 @@ import utime as time
 import webrepl
 import config as cfg
 import uftpd
-
+from config import webrepl as config_webrepl
 
 wlan = network.WLAN(network.STA_IF)
 wlan_stable = False
@@ -90,11 +90,15 @@ async def check_stable(duration: int = 2000)->bool:
         await asyncio.sleep_ms(10)
     # connected and IP
     wlan_stable = wlan.isconnected() and wlan.status() == network.STAT_GOT_IP
+    uftpd.restart()
+    log.info('ftp server restarted')
     try:
-        log.info('webrepl and ftp server starting')
-        webrepl.start(password='4242')      # todo: move password to config
-        uftpd.restart()
+        if config_webrepl["active"]:
+            log.info('start webrepl')
+            webrepl.start(password=config_webrepl["password"])
+    except ValueError as e:
+        log.warning('webrepl password > 8 characters{}'.format(e))
     except OSError as e:
-        log.warning('Unable to start webrepl {}'.format(e))
+        log.warning('Unable to start webrepl{}'.format(e))
     return wlan_stable
 
