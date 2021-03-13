@@ -1,22 +1,34 @@
+# MicroPython P1 meter 
 
 
-# What is this 
+
+![image-20201220223145001](docs/img/image-20201220223145001.png)
+
+Overview 
 
 
-  * a sensor device that 
-    - connects to your electricity meter
-    - activates the output
-    - reads the OBIS coded information 
-    - runs a CRC check 
-    - translates the codes to readable topics
-    - publishes them to a MQTT server on your network
-    - so you can read the information in HomeAssistant (or any other tool) 
-    - most of it is configurable in a simple config file 
-  * in addition it 
-    - logs a few relevant sensors statistics to MQTT ( memory, CPY core temperature)
-    - can view logs and other terminal output over wifi via the webrepl
-    - can update configuration over FTP using just about any FTP tool 
-    - uses mDns to connect the mqtt avoiding the need for fixed IP addresses or static DNS leases
+
+If you want to monitor your energy usage
+
+
+
+**The P1_Meter is a a sensor device that:** 
+
+- connects to your electricity meter's P1 port 
+- Reads the P1 output using one of the ESP32 hardware UARTs
+- reads the OBIS coded information 
+- runs a CRC check on the received information to suppress incorrect readings
+- translates the OBIS codes to readable topics
+- publishes the information to a MQTT server on your network
+- so you can read the information in HomeAssistant (or any other tool) 
+- uses mDns to simplify configuration and avoid the need for fixed IP addresses or static DNS leases
+- allows the configuration to be changed though a simple config file 
+
+**in addition it:** 
+
+- logs a few relevant sensors statistics to MQTT (cllient_id,  free memory, CPU core temperature)
+- Allows you to view logs and other terminal output over wifi via the webrepl
+- Allows you to update update the configuration over the network using FTP 
 
 - how does it work
   
@@ -27,14 +39,32 @@
 
 
 ## Hardware & Firmware 
- - just about any ESP32 board 
- - configured with micropython 1.13 or newer  
-   http://micropython.org/download/esp32/
-    - ESP32 GENERIC-SPIRAM : [esp32spiram-idf3-20200902-v1.13.bin](http://micropython.org/resources/firmware/esp32spiram-idf3-20200902-v1.13.bin)
- - memory:   
-   no SPI ram is required,  the firmware auto detects if it is present and runs on either.
+**Hardware:** 
 
-## install the P1 meter software on the ESP32 MCU
+ - Any ESP32 board
+   no SPI ram is required,  the firmware auto detects if it is present and runs on either.
+ - A single 1K Ohm resistor 
+ - A cable with a 4 or 6 pin RJ12 connector 
+   (optionally a 4 pin RJ11 connector and be used) 
+ - Some sort of casing 
+ - Optional: a sort strip of 3 neopixels to use as indicators.
+   
+
+**Firmware:**
+
+ - Use micropython 1.13 for or newer for the esp32 http://micropython.org/download/esp32/
+   you can download the firmware directly from 
+   
+    - ESP32 GENERIC-SPIRAM : [esp32spiram-idf3-20200902-v1.13.bin](http://micropython.org/resources/firmware/esp32spiram-idf3-20200902-v1.13.bin)
+   
+ - Install the micropython firmware to the ESP32 using the procedure documented in:
+   [Getting started with MicroPython on the ESP32 — MicroPython 1.13 documentation](http://docs.micropython.org/en/latest/esp32/tutorial/intro.html#deploying-the-firmware)
+
+ - the code in this repo; see the next paragraph.
+
+   
+
+## Install the P1 meter software on the ESP32 MCU
  - git clone this repo
   - adjust config.py settings :
     - homenet : WiFi SSID and Password 
@@ -60,7 +90,9 @@ optionally
       if you rather want a few simple leds to provide signals  there are enough pins left , but switched to neopixels to simplify the wiring.
       the code should be in one of the earlier commits.
 
-![circuit diagram](docs/circuit.png)
+![circuit diagram](docs/circuit.png) 
+
+
 
 The ESP hardware UART 1 is used to connect to pin 2 ( you specify in config.py 
 this allows normal functionality to use the USB port (UART 0) for configuration and monitoring of the ESP32.
@@ -122,7 +154,70 @@ publish_as_json = False
 ```
 
 
+
+## Updating the configuration over WiFi
+
+Assuming that you have cloned the repo to your PC , and have updated the configuration file  `config.py` . 
+You will need to transfer the updated configuration file to the ESP32. 
+
+You can do this via serial connection, or as the  P1_meter and your pc are likely in in different locations you can do this over WifI 
+
+
+
+### Uploading config.py using webrepl
+
+The MicroPython webrepl is started as part of the standard configuration, and advertises itself as `p1_meter.local` using the standard webrepl port (8266).
+
+If you are on the same network , this allows you to connect to the P1_meter to verify its operation.
+
+The below link uses the hosted webrepl, and specifies the board to connect to.
+http://micropython.org/webrepl/#p1_meter.local:8266/
+
+![image-20201220230034023](docs/img/image-20201220230034023.png) 
+
+1. [Connect] to the board 
+
+2. Enter the current webrepl password. default: p1meter
+
+3. Select the config.py file to upload
+
+4. click [Send to device]
+
+5. Click in the terminal window 
+
+6. Press Ctrl-C once, to interrupt the running instance.
+   You should see something like the below, and the 3 leds will turn red 
+
+   ```
+   INFO     mqttclient Published 4 meter readings                                  
+   INFO     main       Clear async loop retained state                             
+   Rebooting in 30 seconds, Ctrl-C to abort  
+   ```
+
+7. the device will automatically reboot in 30 seconds, and the new configuration will be activated.
+
+![Upload_reboot](docs/img/Upload_reboot.gif) 
+
+
+
+### Updating configuration or code via passive ftp 
+
+
+
+
+
+<img src="docs/img/image-20201220225411048.png" alt="image-20201220225411048" style="zoom:50%;" />
+
+
+
+
+
+
+
+
+
 ### Prereqs : 
+
  - git client
  - python 3.x installed 
 
@@ -132,7 +227,7 @@ publish_as_json = False
  - pip install micropy-cli 
 
 
-### building
+### Building
 
 
 As the software is written in Micropython building is not needed. if you really want or need to minimize the footprint on the device you can pre-compile the .py files to .mpy using the micropython cross-compiler
@@ -157,13 +252,13 @@ You can run the built-in  simulator for testing (using TX_PIN_NR)
     - edit the configuration file `config.py` to enable the Simulator 
   ``` python
       RUN_SIM = True
-  ````    
+````
 ## Simulation / test mode 
 The p1 meter comes with a built-in test and simulation mode that allows you to test and  change the software, without needing to physically connect it to a electricity meter.
 
 this simulation mode can be enabled  by wiring, or by making a change to the config.py file 
 
-To enable this wia wiring: 
+To enable this via wiring: 
  1. Connect Pin 18 --> GND , enable Simulator 
  2. Connect Pin 15 --> Pin 2 , connect simulator TX to RX 
 
