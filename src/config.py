@@ -7,6 +7,11 @@ from machine import unique_id
 #------------------------------------------------
 # governs the overall debug logging 
 DEBUG = True
+
+#------------------------------------------------
+# Split the signal (using TX_PIN_NR)
+RUN_SPLITTER = True
+
 #------------------------------------------------
 # run the simulator for testing (using TX_PIN_NR)
 RUN_SIM = False
@@ -15,9 +20,7 @@ RUN_SIM = False
 INTERVAL_MEM = 600      # force mem cleanup every 10 minutes
 INTERVAL_ALL = 300      # force sending all information at 5 m interval
 
-#autodetect my test ESP32 - M5
-if hexlify(unique_id())[-6:] == b'2598b4':
-    RUN_SIM = True
+
 
 # Base SSID to connect to
 homenet = {'SSID': 'IoT', 'password': 'MicroPython'}
@@ -33,27 +36,32 @@ webrepl = {'active': True, 'password': "4242"}
 #Network ID
 NETWORK_ID = b'p1_meter'
 
-if RUN_SIM:
+#autodetect my test ESP32 - M5 or Lolin32 or EP32-Pico
+if hexlify(unique_id())[-6:] in [b'2598b4', b'19e74c', b'40665c']:
+    # RUN_SIM = True
     NETWORK_ID += b'_' + hexlify(unique_id())[-6:]
 
 #MQTT topic follows network ID
 ROOT_TOPIC = NETWORK_ID
 
 # Serial Pins for meter connection
-# TX pin is only used for testing/simulation but needs to be specified
+# UART 1 = Receive
 RX_PIN_NR = const(2)
-TX_PIN_NR = const(18)
 CTS_PIN_NR = const(5)
+
+
+# Splitter or SYM Port (also UART1)
+# TX pin must be specified
+TX_PIN_NR = const(18)
+DTR_PIN_NR = const(19)
 
 #also publish telegram as json
 publish_as_json = False
 
 #------------------------------------------------
 # A few Leds - optional
-# avoid 25 Speaker on M5Base 
+# avoid 25 Speaker on M5Base
 NEOPIXEL_PIN = const(13)
-
-
 
 #------------------------------------------------
 
@@ -74,7 +82,7 @@ NEOPIXEL_PIN = const(13)
 #     and then use that value in the replacement string by specifying \\1 (or \\2 for the 2nd capture).
 
 #     the equipment number for the equipment_id and the equipment_type appears to be different.
-
+#pylint: disable=bad-whitespace, bad-continuation
 codetable = (
     ("1-3:0.2.8.*"          , "equipment/version"),
     ("0-0:1.0.0.*"          , "date_time"),                         # ASCII presentation of Time stamp with Year, Month, Day, Hour, Minute, Second, and an indication whether DST is active (X=S) or DST is not active (X=W)

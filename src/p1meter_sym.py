@@ -23,7 +23,7 @@ class P1MeterSIM():
     """
     P1 meter to fake a Dutch electricity meter and generate some reading to test the rest of the software
     """
-    def __init__(self, uart:UART, mq_client :MQTTClient2, fb:Feedback):
+    def __init__(self, uart: UART, mq_client: MQTTClient2, fb: Feedback):
         # do not re-init port for sim
         self.uart = uart
         # self.telegram = template
@@ -47,7 +47,7 @@ class P1MeterSIM():
             await swriter.drain()       # pylint: disable= not-callable
             self.messages += 1
             await asyncio.sleep_ms(1)
-            self.mqtt_client.publish_one(ROOT_TOPIC + b"/sensor/simulator", str(self.messages))
+            self.mqtt_client.publish_one(ROOT_TOPIC + b"/sensor/massages_simulated", str(self.messages))
             self.fb.update(Feedback.L_P1, Feedback.BLACK)
 
             await asyncio.sleep(interval)

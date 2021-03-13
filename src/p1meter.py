@@ -12,8 +12,8 @@ import config as cfg
 # Logging
 log = logging.getLogger('p1meter')
 #set level no lower than ..... for this log only
-log.level = max( logging.DEBUG , logging._level) #pylint: disable=protected-access
-VERBOSE = False
+log.level = max(logging.DEBUG, logging._level) #pylint: disable=protected-access
+VERBOSE = True
 
 print(r"""
 ______  __   ___  ___     _            
@@ -21,10 +21,19 @@ ______  __   ___  ___     _
 | |_/ /`| |  | .  . | ___| |_ ___ _ __ 
 |  __/  | |  | |\/| |/ _ \ __/ _ \ '__|
 | |    _| |_ | |  | |  __/ ||  __/ |   
-\_|    \___/ \_|  |_/\___|\__\___|_|     v 1.0.1
+\_|    \___/ \_|  |_/\___|\__\___|_|     v 1.1.0
 """)
 
-def dictcopy(d : dict):
+if cfg.RUN_SPLITTER:
+    print(r"""
+     __  ___  _    _  ___  ___  ___  ___ 
+    / _|| o \| |  | ||_ _||_ _|| __|| o \
+    \_ \|  _/| |_ | | | |  | | | _| |   /
+    |__/|_|  |___||_| |_|  |_| |___||_|\\
+    """)
+
+
+def dictcopy(d: dict):
     "returns a copy of a dict using copy though json"
     return json.loads(json.dumps(d))
 
@@ -48,16 +57,18 @@ class P1Meter():
     """
     P1 meter to take readings from a Dutch electricity meter and publish them on mqtt for consumption by homeassistant
     """
-    def __init__(self, mq_client :MQTTClient2, fb:Feedback):
+    def __init__(self, mq_client: MQTTClient2, fb: Feedback):
         # init port for receiving 115200 Baud 8N1 using inverted polarity in RX/TX
-
-        self.uart = UART(   1, rx=cfg.RX_PIN_NR, tx= cfg.TX_PIN_NR,
-                            baudrate=115200,  bits=8, parity=None,
-                            stop=1 , invert=UART.INV_RX | UART.INV_TX,
+        # UART 1 = Receive and TX if configured as Splitter 
+        self.uart = UART(   1, rx=cfg.RX_PIN_NR, tx=cfg.TX_PIN_NR,
+                            baudrate=115200, bits=8, parity=None,
+                            stop=1, invert=UART.INV_RX | UART.INV_TX,
                             txbuf=2048, rxbuf=2048)                     # larger buffer for testing and stability
         log.info("setup to receive P1 meter data : {}".format(self.uart))
         self.last = []
         self.message = ''
+        self.messages_rx = 0
+        self.messages_tx = 0
         self.mqtt_client = mq_client
         self.fb=fb
         # set CTS/RTS High
@@ -75,9 +86,9 @@ class P1Meter():
         "Receive telegrams from the p1 meter and send them once received"
         sreader = asyncio.StreamReader(self.uart)
         #start with an empty telegram, explicit to avoid references
-        empty = {'header': '', 'data': [],  'footer': ''}
+        empty = {'header': '', 'data': [], 'footer': ''}
         tele = dictcopy(empty)
-        log.info("listening on UART for P1 meter data")
+        log.info("listening on UART1 Pin:{} for P1 meter data".format(cfg.RX_PIN_NR))
         while True:
             line = await sreader.readline()         #pylint: disable= not-callable
             if VERBOSE:
@@ -93,35 +104,41 @@ class P1Meter():
                 if line[0] == '/':
                     log.debug('header found')
                     tele = dictcopy(empty)
-                    self.message=line
+                    self.message = line
 
                 elif line[0] == '!':
                     log.debug('footer found')
                     tele['footer'] = line
-                    self.message+="!"
+                    self.message += "!"
+                    # self.message += line
+                    # Process the received telegram 
                     await self.process(tele)
-                    self.message=''
+                    self.message = ''
 
                 elif line != "--noise--":
                     tele['data'].append(line)
                     # add to message
-                    self.message+=line
+                    self.message += line
 
+    def crc(self) -> str:
+        "Compute the crc of self.message"
+        buf = self.message.encode()
+        # TMI log.debug( "buf: {}".format(buf))
+        return "{0:04X}".format(crc16(buf))
+
+    
     def crc_ok(self, tele:dict = None)-> bool:
         "run CRC-16 check on the received telegram"
         # todo: just pass the expected CRC16 rather than the entire telegram
         if not tele or not self.message:
             return False
         try:
-            # buf = self.message.replace('\n','\r\n').encode()
-            buf = self.message.encode()
-            # TMI log.debug( "buf: {}".format(buf))
-            crc_computed = "{0:04X}".format(crc16(buf))
-            log.debug("RX computed CRC {0}".format(crc_computed))
-            if crc_computed in tele['footer']:
+            crc = self.crc()
+            log.debug("RX computed CRC {0}".format(crc))
+            if crc in tele['footer']:
                 return True
             else:
-                log.warning("CRC Failed, computed: {0} != received {1}!!".format(str(crc_computed), str(tele['footer'][1:5])))
+                log.warning("CRC Failed, computed: {0} != received {1}".format(str(crc), str(tele['footer'][1:5])))
                 return False
         except (OSError, TypeError) as e:
             log.error("Error during CRC check: {}".format(e))
@@ -129,13 +146,17 @@ class P1Meter():
 
     async def process(self, tele:dict):
         # check CRC
-        if not self.crc_ok( tele, ) :
+        if not self.crc_ok(tele):
             self.fb.update(Feedback.L_P1, Feedback.RED)
             return
         self.fb.update(Feedback.L_P1, Feedback.BLUE)
- 
+
+        # Send a copy of the received message (self.message)
+        if cfg.RUN_SPLITTER:
+            await self.send(self.message)
+
         # what has changed since last time ?
-        newdata= set(tele['data']) - set(self.last)
+        newdata = set(tele['data']) - set(self.last)
 
         readings = []
         for line in newdata:
@@ -152,10 +173,10 @@ class P1Meter():
                     lineinfo['reading'] = reading[0]
                 # a few meters have compound content, that remain seperated by `)(`
                 # split and use  only the last section (ie gas meter reading)
-                lineinfo['reading']=lineinfo['reading'].split(')(')[-1]
+                lineinfo['reading'] = lineinfo['reading'].split(')(')[-1]
 
                 log.debug(lineinfo)
-                readings.append(lineinfo )
+                readings.append(lineinfo)
         # replace codes for ROOT_TOPICs
         reading = replace_codes(readings)
 
@@ -170,3 +191,21 @@ class P1Meter():
             self.fb.update(Feedback.L_P1, Feedback.YELLOW)
             self.fb.update(Feedback.L_MQTT, Feedback.YELLOW)
 
+    async def send(self, telegram: str):
+        """
+        Sends telegram, with added CRC16
+        """
+        swriter = asyncio.StreamWriter(self.uart, {})
+
+        self.fb.update(Feedback.L_P1, Feedback.PURPLE)
+        log.info('Split telegram')
+        if VERBOSE:
+            log.debug(b'TX telegram message: ----->')
+            log.debug(telegram)
+            log.debug(b'-----')
+        swriter.write(telegram + self.crc() + '\r\n')
+        await swriter.drain()       # pylint: disable= not-callable
+        self.messages_tx += 1
+        await asyncio.sleep_ms(1)
+        self.mqtt_client.publish_one(cfg.ROOT_TOPIC + b"/sensor/message_tx", str(self.messages_tx))
+        self.fb.update(Feedback.L_P1, Feedback.BLACK)

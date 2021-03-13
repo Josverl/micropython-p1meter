@@ -7,12 +7,13 @@ import uasyncio as asyncio
 from p1meter import P1Meter
 import wifi
 from mqttclient import MQTTClient2
-from config import ROOT_TOPIC, RUN_SIM, NETWORK_ID
+from config import ROOT_TOPIC, RUN_SIM, NETWORK_ID, RUN_SPLITTER
 from config import INTERVAL_MEM, INTERVAL_ALL
 
 from utilities import cpu_temp, Feedback, reboot, getntptime
 
-if RUN_SIM:
+# Splitter and Simulator cannot be run at the same time as they use the same UART
+if RUN_SIM and not RUN_SPLITTER:
     from p1meter_sym import P1MeterSIM
 
 # Logging
@@ -84,7 +85,7 @@ async def main(mq_client):
     asyncio.create_task(wifi.ensure_connected())
     asyncio.create_task(ntp_sync())
     asyncio.create_task(mq_client.ensure_mqtt_connected())
-    if RUN_SIM:
+    if RUN_SIM and not RUN_SPLITTER:
         # SIMULATION: simulate meter input on this machine
         sim = P1MeterSIM(glb_p1_meter.uart, mq_client, fb)
         asyncio.create_task(sim.sender(interval=10))
