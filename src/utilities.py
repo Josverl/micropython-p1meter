@@ -9,7 +9,7 @@ import ntptime
 import config as cfg
 
 # @timed_function
-def crc16(buf :bytearray) -> UINT16 :
+def crc16(buf: bytearray) -> UINT16:
     """CRC-16-ANSI calculated over the characters in the data message using the polynomial: x16 + x15 + x2 + 1
     """
     # http://www.nodo-domotica.nl/images/8/86/DSMR.pdf
@@ -35,11 +35,11 @@ def cpu_temp()->float:
     # print("T = {0:4d} deg F or {1:5.1f}  deg C".format(tf,tc))
     return tc
 
-def enable_rts(enable:bool=True):
+def enable_rts(enable: bool = True):
     _pin_rts = Pin(5, Pin.OUT, enable)
     _pin_rts.value(enable)
 
-def reboot(delay :int = 3):
+def reboot(delay: int = 3):
     fb = Feedback()            # reboot after x seconds stopped when in production
     print('Rebooting in {} seconds, Ctrl-C to abort'.format(3*delay))
     for n in range(3):
@@ -54,9 +54,9 @@ def getntptime():
     "sync CET time from ntp server"
     try:
         year = time.localtime()[0]       #get current year      # 1st run uses null year 2020
-        now=ntptime.time()
-        HHMarch   = time.mktime((year,3 ,(31-(int(5*year/4+4))%7),1,0,0,0,0,0)) #Time of March change to CEST
-        HHOctober = time.mktime((year,10,(31-(int(5*year/4+1))%7),1,0,0,0,0,0)) #Time of October change to CET
+        now = ntptime.time()
+        HHMarch   = time.mktime((year, 3, (31-(int(5*year/4+4))%7), 1, 0, 0, 0, 0, 0)) #Time of March change to CEST
+        HHOctober = time.mktime((year, 10, (31-(int(5*year/4+1))%7), 1, 0, 0, 0, 0, 0)) #Time of October change to CET
         if now < HHMarch :               # we are before last sunday of march
             ntptime.NTP_DELTA = 3155673600-1*3600 # CET:  UTC+1H
         elif now < HHOctober :           # we are before last sunday of october
@@ -65,7 +65,7 @@ def getntptime():
             ntptime.NTP_DELTA = 3155673600-1*3600 # CET:  UTC+1H
         # set the rtc datetime from the remote server
         ntptime.settime()
-    except OSError:
+    except (OSError, OverflowError):
         pass
 
 class Feedback():
@@ -73,17 +73,17 @@ class Feedback():
     # fb = Feedback()
     # fb.update(0,fb.GREEN)
 
-    L_MQTT = 0
-    L_NET = 1
-    L_P1 = 2
+    LED_MQTT = 0
+    LED_NETWORK = 1
+    LED_P1METER = 2
 
-    BLACK=(0,0,0)
-    WHITE=(20,20,20)
-    RED=(64,0,0)
-    GREEN=(2,16,2)      # dim green
-    BLUE=(0,0,64)
-    YELLOW=(64,64,0)
-    PURPLE=(64,0,64)
+    BLACK = (0, 0, 0)
+    WHITE = (20, 20, 20)
+    RED = (64, 0, 0)
+    GREEN = (2, 16, 2)      # dim green
+    BLUE = (0, 0, 64)
+    YELLOW = (64, 64, 0)
+    PURPLE = (64, 0, 64)
     np = None
 
     def __init__(self):
@@ -91,12 +91,12 @@ class Feedback():
         self.np = NeoPixel(_pin_np, 3)                  # create NeoPixel driver for 3 pixels
         self.np.write()
 
-    def update(self, n:int=2, color: tuple=(64,64,64)):
+    def update(self, n: int = 2, color: tuple = PURPLE):
         if self.np:
             self.np[n]=color    #pylint: disable= unsupported-assignment-operation
             self.np.write()
 
-    def clear(self, color: tuple=(0,0,0)):
+    def clear(self, color: tuple = BLACK):
         for n in range(3):
             self.np[n]=color    #pylint: disable= unsupported-assignment-operation
             self.np.write()

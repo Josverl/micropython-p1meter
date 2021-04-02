@@ -13,7 +13,7 @@ import config as cfg
 log = logging.getLogger('p1meter')
 #set level no lower than ..... for this log only
 log.level = max(logging.DEBUG, logging._level) #pylint: disable=protected-access
-VERBOSE = True
+VERBOSE = False
 
 print(r"""
 ______  __   ___  ___     _            
@@ -31,7 +31,6 @@ if cfg.RUN_SPLITTER:
     \_ \|  _/| |_ | | | |  | | | _| |   /
     |__/|_|  |___||_| |_|  |_| |___||_|\\
     """)
-
 
 def dictcopy(d: dict):
     "returns a copy of a dict using copy though json"
@@ -57,6 +56,9 @@ class P1Meter():
     """
     P1 meter to take readings from a Dutch electricity meter and publish them on mqtt for consumption by homeassistant
     """
+    cts: Pin
+    dtr: Pin
+    
     def __init__(self, mq_client: MQTTClient2, fb: Feedback):
         # init port for receiving 115200 Baud 8N1 using inverted polarity in RX/TX
         # UART 1 = Receive and TX if configured as Splitter 
@@ -70,17 +72,21 @@ class P1Meter():
         self.messages_rx = 0
         self.messages_tx = 0
         self.mqtt_client = mq_client
-        self.fb=fb
-        # set CTS/RTS High
+        self.fb = fb
+        self.crc_rcvd = ''
+        # receive set CTS/RTS High
         self.cts = Pin(cfg.CTS_PIN_NR, Pin.OUT)
         self.cts.on()                 # Ask P1 meter to send data
+        # In case the 
+        self.dtr = Pin(cfg.DTR_PIN_NR,Pin.IN, Pin.PULL_DOWN)
+
 
     def clearlast(self)-> None:
         "trigger sending the complete next telegram by forgetting the previous"
         if len(self.last) > 0:
             log.warning("trigger sending the complete next telegram by forgetting the previous")
             self.last = []
-            self.fb.update(Feedback.L_P1, Feedback.PURPLE)
+            self.fb.update(Feedback.LED_P1METER, Feedback.PURPLE)
 
     async def receive(self):
         "Receive telegrams from the p1 meter and send them once received"
@@ -88,7 +94,9 @@ class P1Meter():
         #start with an empty telegram, explicit to avoid references
         empty = {'header': '', 'data': [], 'footer': ''}
         tele = dictcopy(empty)
-        log.info("listening on UART1 Pin:{} for P1 meter data".format(cfg.RX_PIN_NR))
+        log.info("listening on UART1 RX Pin:{} for P1 meter data".format(cfg.RX_PIN_NR))
+        if cfg.RUN_SPLITTER:
+            log.info("repeating on UART1 RX Pin:{} ".format(cfg.TX_PIN_NR))
         while True:
             line = await sreader.readline()         #pylint: disable= not-callable
             if VERBOSE:
@@ -110,10 +118,14 @@ class P1Meter():
                     log.debug('footer found')
                     tele['footer'] = line
                     self.message += "!"
+                    if len(line) > 5:
+                        self.crc_rcvd = line[1:5]
                     # self.message += line
-                    # Process the received telegram 
+                    # Process the received telegram
                     await self.process(tele)
+                    # start with a blank slate
                     self.message = ''
+                    self.crc_rcvd = ''
 
                 elif line != "--noise--":
                     tele['data'].append(line)
@@ -147,9 +159,10 @@ class P1Meter():
     async def process(self, tele:dict):
         # check CRC
         if not self.crc_ok(tele):
-            self.fb.update(Feedback.L_P1, Feedback.RED)
+            self.fb.update(Feedback.LED_P1METER, Feedback.RED)
             return
-        self.fb.update(Feedback.L_P1, Feedback.BLUE)
+        else:
+            self.fb.update(Feedback.LED_P1METER, Feedback.GREEN)
 
         # Send a copy of the received message (self.message)
         if cfg.RUN_SPLITTER:
@@ -186,26 +199,31 @@ class P1Meter():
         if await self.mqtt_client.publish_readings(readings):
             # only safe last if mqtt publish was ok
             self.last = tele['data'].copy()
-            self.fb.update(Feedback.L_P1, Feedback.GREEN)
         else:
-            self.fb.update(Feedback.L_P1, Feedback.YELLOW)
-            self.fb.update(Feedback.L_MQTT, Feedback.YELLOW)
+            self.fb.update(Feedback.LED_MQTT, Feedback.YELLOW)
+        # Turn off
+        log.info('led off')
+        self.fb.update(Feedback.LED_P1METER, Feedback.BLACK)
 
     async def send(self, telegram: str):
         """
-        Sends telegram, with added CRC16
+        Sends/repeats telegram, with added CRC16
         """
-        swriter = asyncio.StreamWriter(self.uart, {})
 
-        self.fb.update(Feedback.L_P1, Feedback.PURPLE)
-        log.info('Split telegram')
-        if VERBOSE:
-            log.debug(b'TX telegram message: ----->')
-            log.debug(telegram)
-            log.debug(b'-----')
-        swriter.write(telegram + self.crc() + '\r\n')
-        await swriter.drain()       # pylint: disable= not-callable
-        self.messages_tx += 1
-        await asyncio.sleep_ms(1)
-        self.mqtt_client.publish_one(cfg.ROOT_TOPIC + b"/sensor/message_tx", str(self.messages_tx))
-        self.fb.update(Feedback.L_P1, Feedback.BLACK)
+        log.info('Copy telegram')
+        if not self.dtr.value():
+            log.warning("Splitter DTR is Low, will not send P1 telegram data")
+        else:
+            swriter = asyncio.StreamWriter(self.uart, {})
+
+            self.fb.update(Feedback.LED_P1METER, Feedback.BLUE)
+            if VERBOSE:
+                log.debug(b'TX telegram message: ----->')
+                log.debug(telegram)
+                log.debug(b'-----')
+            swriter.write(telegram + self.crc_rcvd  + '\r\n')
+            await swriter.drain()       # pylint: disable= not-callable
+            self.messages_tx += 1
+            await asyncio.sleep_ms(1)
+
+            # self.mqtt_client.publish_one(cfg.ROOT_TOPIC + b"/sensor/message_tx", str(self.messages_tx))

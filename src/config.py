@@ -5,8 +5,8 @@ from  ubinascii import  hexlify
 from machine import unique_id
 
 #------------------------------------------------
-# governs the overall debug logging 
-DEBUG = True
+# governs the overall debug logging
+DEBUG = False
 
 #------------------------------------------------
 # Split the signal (using TX_PIN_NR)
@@ -19,8 +19,6 @@ RUN_SIM = False
 
 INTERVAL_MEM = 600      # force mem cleanup every 10 minutes
 INTERVAL_ALL = 300      # force sending all information at 5 m interval
-
-
 
 # Base SSID to connect to
 homenet = {'SSID': 'IoT', 'password': 'MicroPython'}
@@ -37,8 +35,8 @@ webrepl = {'active': True, 'password': "4242"}
 NETWORK_ID = b'p1_meter'
 
 #autodetect my test ESP32 - M5 or Lolin32 or EP32-Pico
-if hexlify(unique_id())[-6:] in [b'2598b4', b'19e74c', b'40665c']:
-    # RUN_SIM = True
+if hexlify(unique_id())[-6:] in [b'2598b4', b'19e74c', b'40665c', b'19e74c']:
+    RUN_SIM = True
     NETWORK_ID += b'_' + hexlify(unique_id())[-6:]
 
 #MQTT topic follows network ID
@@ -46,14 +44,16 @@ ROOT_TOPIC = NETWORK_ID
 
 # Serial Pins for meter connection
 # UART 1 = Receive
-RX_PIN_NR = const(2)
-CTS_PIN_NR = const(5)
+# Pullup resistor Wired in pin 2 for crosscable :-( 
+RX_PIN_NR = const(15)       # P1_in - Pin 2 - Crosscable
+CTS_PIN_NR = const(5)       # P1_in - Pin 5 - Crosscable
 
 
 # Splitter or SYM Port (also UART1)
 # TX pin must be specified
-TX_PIN_NR = const(18)
-DTR_PIN_NR = const(19)
+TX_PIN_NR = const(18)       # P1_Out - Pin 5 - Straight cable 
+DTR_PIN_NR = const(19)      # P1_Out - Pin 2 - Straight cable 
+
 
 #also publish telegram as json
 publish_as_json = False

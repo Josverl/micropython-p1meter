@@ -46,15 +46,15 @@ async def update_leds():
     while 1:
         # wifi led
         if wifi.wlan.status() == wifi.network.STAT_GOT_IP:
-            fb.update(fb.L_NET, fb.GREEN)
+            fb.update(fb.LED_NETWORK, fb.GREEN)
         else:
-            fb.update(fb.L_NET, fb.RED)
+            fb.update(fb.LED_NETWORK, fb.RED)
 
         #MQTT
         if glb_mqtt_client.healthy():
-            fb.update(fb.L_MQTT, fb.GREEN)
+            fb.update(fb.LED_MQTT, fb.GREEN)
         else:
-            fb.update(fb.L_MQTT, fb.RED)
+            fb.update(fb.LED_MQTT, fb.RED)
 
         await asyncio.sleep(1)
 
@@ -88,7 +88,7 @@ async def main(mq_client):
     if RUN_SIM and not RUN_SPLITTER:
         # SIMULATION: simulate meter input on this machine
         sim = P1MeterSIM(glb_p1_meter.uart, mq_client, fb)
-        asyncio.create_task(sim.sender(interval=10))
+        asyncio.create_task(sim.sender(interval=5))
 
     # start receiver
     asyncio.create_task(glb_p1_meter.receive())

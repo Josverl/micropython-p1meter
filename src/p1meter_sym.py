@@ -6,7 +6,7 @@ from machine import UART
 import uasyncio as asyncio
 from utilities import crc16, Feedback
 from mqttclient import MQTTClient2
-from config import ROOT_TOPIC
+import config as cfg
 
 # Logging
 log = logging.getLogger('SIMULATION')
@@ -23,32 +23,32 @@ class P1MeterSIM():
     """
     P1 meter to fake a Dutch electricity meter and generate some reading to test the rest of the software
     """
+    messages_tx = 0
     def __init__(self, uart: UART, mq_client: MQTTClient2, fb: Feedback):
         # do not re-init port for sim
         self.uart = uart
         # self.telegram = template
-        self.messages = 0
         self.mqtt_client = mq_client
         self.fb = fb
 
     async def sender(self, interval :int = 5):
         """
         Simulates data being sent from the p1 port to aid in debugging
-        this assumes that pin rx=2 and tx=15 are connected
+        this assumes that pin rx and tx are connected
         """
         swriter = asyncio.StreamWriter(self.uart, {})
         while True:
-            self.fb.update(Feedback.L_P1, Feedback.PURPLE)
-            log.warning('send simulated telegram')
+            self.fb.update(Feedback.LED_P1METER, Feedback.PURPLE)
+            log.warning('send simulated telegram on pin {}'.format(cfg.TX_PIN_NR))
             telegram = self.fake_message()
             if VERBOSE: 
                 log.debug(b'TX telegram message: '+telegram)
             swriter.write(telegram)
             await swriter.drain()       # pylint: disable= not-callable
-            self.messages += 1
+            self.messages_tx += 1
             await asyncio.sleep_ms(1)
-            self.mqtt_client.publish_one(ROOT_TOPIC + b"/sensor/massages_simulated", str(self.messages))
-            self.fb.update(Feedback.L_P1, Feedback.BLACK)
+            self.mqtt_client.publish_one(cfg.ROOT_TOPIC + b"/sensor/massages_simulated", str(self.messages_tx))
+            self.fb.update(Feedback.LED_P1METER, Feedback.BLACK)
 
             await asyncio.sleep(interval)
 

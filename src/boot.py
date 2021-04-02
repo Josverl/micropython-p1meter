@@ -50,6 +50,7 @@ else:
 
 # WiFI: no need to init wifi,it is established by an async task
 
-# log.info("Set clock frequency to 80Mhz")
-# import machine
-# machine.freq(80*1000000)
+import machine
+FREQ = 240
+log.info("Set clock frequency to {}Mhz".format(FREQ))
+machine.freq(FREQ*1000000)
