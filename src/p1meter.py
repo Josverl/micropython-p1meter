@@ -23,7 +23,7 @@ ______  __   ___  ___     _
 | |_/ /`| |  | .  . | ___| |_ ___ _ __ 
 |  __/  | |  | |\/| |/ _ \ __/ _ \ '__|
 | |    _| |_ | |  | |  __/ ||  __/ |   
-\_|    \___/ \_|  |_/\___|\__\___|_|     v 1.2.1
+\_|    \___/ \_|  |_/\___|\__\___|_|     v 1.3.0
 """)
 
 if cfg.RUN_SPLITTER:
@@ -249,7 +249,6 @@ class P1Meter():
                 log.debug(b'-----')
             swriter.write(telegram + self.crc_received  + '\r\n')
             await swriter.drain()       # pylint: disable= not-callable
-            self.telegrams_tx += 1
             await asyncio.sleep_ms(1)
 
 
