@@ -43,9 +43,9 @@ def reboot(delay: int = 3):
     fb = Feedback()            # reboot after x seconds stopped when in production
     print('Rebooting in {} seconds, Ctrl-C to abort'.format(3*delay))
     for n in range(3):
-        fb.update(n,fb.PURPLE)
+        fb.update(n, fb.PURPLE)
         time.sleep(delay)
-        fb.update(n,fb.BLUE)
+        fb.update(n, fb.BLUE)
     print('Rebooting now...')
     machine.reset()
 
@@ -57,9 +57,9 @@ def getntptime():
         now = ntptime.time()
         HHMarch   = time.mktime((year, 3, (31-(int(5*year/4+4))%7), 1, 0, 0, 0, 0, 0)) #Time of March change to CEST
         HHOctober = time.mktime((year, 10, (31-(int(5*year/4+1))%7), 1, 0, 0, 0, 0, 0)) #Time of October change to CET
-        if now < HHMarch :               # we are before last sunday of march
+        if now < HHMarch:                # we are before last sunday of march
             ntptime.NTP_DELTA = 3155673600-1*3600 # CET:  UTC+1H
-        elif now < HHOctober :           # we are before last sunday of october
+        elif now < HHOctober:            # we are before last sunday of october
             ntptime.NTP_DELTA = 3155673600-2*3600 # CEST: UTC+2H
         else:                            # we are after last sunday of october
             ntptime.NTP_DELTA = 3155673600-1*3600 # CET:  UTC+1H
@@ -93,10 +93,10 @@ class Feedback():
 
     def update(self, n: int = 2, color: tuple = PURPLE):
         if self.np:
-            self.np[n]=color    #pylint: disable= unsupported-assignment-operation
+            self.np[n] = color    #pylint: disable= unsupported-assignment-operation
             self.np.write()
 
     def clear(self, color: tuple = BLACK):
         for n in range(3):
-            self.np[n]=color    #pylint: disable= unsupported-assignment-operation
+            self.np[n] = color    #pylint: disable= unsupported-assignment-operation
             self.np.write()

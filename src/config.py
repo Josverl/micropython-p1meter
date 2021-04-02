@@ -34,9 +34,10 @@ webrepl = {'active': True, 'password': "4242"}
 #Network ID
 NETWORK_ID = b'p1_meter'
 
+TEST = False
 #autodetect my test ESP32 - M5 or Lolin32 or EP32-Pico
-if hexlify(unique_id())[-6:] in [b'2598b4', b'19e74c', b'40665c', b'19e74c']:
-    RUN_SIM = True
+if TEST or hexlify(unique_id())[-6:] in [b'2598b4', b'19e74c', b'40665c', b'19e74c']:
+    TEST = RUN_SIM = True
     NETWORK_ID += b'_' + hexlify(unique_id())[-6:]
 
 #MQTT topic follows network ID
@@ -44,15 +45,15 @@ ROOT_TOPIC = NETWORK_ID
 
 # Serial Pins for meter connection
 # UART 1 = Receive
-# Pullup resistor Wired in pin 2 for crosscable :-( 
-RX_PIN_NR = const(15)       # P1_in - Pin 2 - Crosscable
-CTS_PIN_NR = const(5)       # P1_in - Pin 5 - Crosscable
+# Pull-up resistor Wired into GPIO 15 for crosscable :-(
+RX_PIN_NR = const(15)       # P1_in - RJ12-5 - Crosscable
+CTS_PIN_NR = const(5)       # P1_in - RJ12-2 - Crosscable
 
 
 # Splitter or SYM Port (also UART1)
 # TX pin must be specified
-TX_PIN_NR = const(18)       # P1_Out - Pin 5 - Straight cable 
-DTR_PIN_NR = const(19)      # P1_Out - Pin 2 - Straight cable 
+TX_PIN_NR = const(18)       # P1_Out - Pin 5 - Straight cable
+DTR_PIN_NR = const(19)      # P1_Out - Pin 2 - Straight cable
 
 
 #also publish telegram as json

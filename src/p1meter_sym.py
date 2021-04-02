@@ -11,7 +11,7 @@ import config as cfg
 # Logging
 log = logging.getLogger('SIMULATION')
 #set level no lower than ..... for this log only
-log.level = max( logging.INFO , logging._level) #pylint: disable=protected-access
+log.level = max(logging.INFO, logging._level) #pylint: disable=protected-access
 VERBOSE = False
 
 #####################################################
@@ -31,7 +31,7 @@ class P1MeterSIM():
         self.mqtt_client = mq_client
         self.fb = fb
 
-    async def sender(self, interval :int = 5):
+    async def sender(self, interval: int = 5):
         """
         Simulates data being sent from the p1 port to aid in debugging
         this assumes that pin rx and tx are connected
@@ -58,8 +58,8 @@ class P1MeterSIM():
         #msg = meter1
         msg = meter3
 
-        u = random.randint(-1000,1000) /100
-        msg = msg.format(0,max(u, 0), -1*min(u,0))
+        u = random.randint(-1000, 1000) /100
+        msg = msg.format(0, max(u, 0), -1*min(u, 0))
         buf = bytearray(msg)
         crc_computed = "{0:04X}".format(crc16(buf))
         # log.debug("TX CRC16 buf : {}".format(buf))
@@ -77,7 +77,8 @@ meter1 = """/XMX5LGBBFG1012650850
 0-1:24.2.1(200909220000S)(05907.828*m3)
 !"""
 
-meter2=(   "/KFM5KAIFA-METER\n"
+meter2 = (
+        "/KFM5KAIFA-METER\n"
         "\n"
         "1-3:0.2.8(42)\n"
         "0-0:1.0.0(170124213128W)\n"

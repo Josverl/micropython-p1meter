@@ -38,17 +38,17 @@ def dictcopy(d: dict):
 
 
 # @timed_function
-def replace_codes(readings :list)-> list :
+def replace_codes(readings: list)-> list:
     "replace the OBIS codes by their ROOT_TOPIC as defined in the codetable"
     for reading in readings:
         for code in cfg.codetable:
-            if re.match(code[0],reading['meter']):
+            if re.match(code[0], reading['meter']):
                 reading['meter'] = re.sub(code[0], code[1], reading['meter'])
 
                 if reading['unit'] and len(reading['unit']) > 0:
                     reading['meter'] += '_' + reading['unit']
 
-                log.debug("{} --> {}".format(code[0],reading['meter'] ))
+                log.debug("{} --> {}".format(code[0], reading['meter']))
                 break
     return readings
 
@@ -58,14 +58,14 @@ class P1Meter():
     """
     cts: Pin
     dtr: Pin
-    
+
     def __init__(self, mq_client: MQTTClient2, fb: Feedback):
         # init port for receiving 115200 Baud 8N1 using inverted polarity in RX/TX
-        # UART 1 = Receive and TX if configured as Splitter 
-        self.uart = UART(   1, rx=cfg.RX_PIN_NR, tx=cfg.TX_PIN_NR,
-                            baudrate=115200, bits=8, parity=None,
-                            stop=1, invert=UART.INV_RX | UART.INV_TX,
-                            txbuf=2048, rxbuf=2048)                     # larger buffer for testing and stability
+        # UART 1 = Receive and TX if configured as Splitter
+        self.uart = UART(1, rx=cfg.RX_PIN_NR, tx=cfg.TX_PIN_NR,
+                         baudrate=115200, bits=8, parity=None,
+                         stop=1, invert=UART.INV_RX | UART.INV_TX,
+                         txbuf=2048, rxbuf=2048)                     # larger buffer for testing and stability
         log.info("setup to receive P1 meter data : {}".format(self.uart))
         self.last = []
         self.message = ''
@@ -73,12 +73,12 @@ class P1Meter():
         self.messages_tx = 0
         self.mqtt_client = mq_client
         self.fb = fb
-        self.crc_rcvd = ''
+        self.crc_received = ''
         # receive set CTS/RTS High
         self.cts = Pin(cfg.CTS_PIN_NR, Pin.OUT)
         self.cts.on()                 # Ask P1 meter to send data
-        # In case the 
-        self.dtr = Pin(cfg.DTR_PIN_NR,Pin.IN, Pin.PULL_DOWN)
+        # In case the
+        self.dtr = Pin(cfg.DTR_PIN_NR, Pin.IN, Pin.PULL_DOWN)
 
 
     def clearlast(self)-> None:
@@ -119,13 +119,13 @@ class P1Meter():
                     tele['footer'] = line
                     self.message += "!"
                     if len(line) > 5:
-                        self.crc_rcvd = line[1:5]
+                        self.crc_received = line[1:5]
                     # self.message += line
                     # Process the received telegram
                     await self.process(tele)
                     # start with a blank slate
                     self.message = ''
-                    self.crc_rcvd = ''
+                    self.crc_received = ''
 
                 elif line != "--noise--":
                     tele['data'].append(line)
@@ -138,8 +138,8 @@ class P1Meter():
         # TMI log.debug( "buf: {}".format(buf))
         return "{0:04X}".format(crc16(buf))
 
-    
-    def crc_ok(self, tele:dict = None)-> bool:
+
+    def crc_ok(self, tele: dict = None)-> bool:
         "run CRC-16 check on the received telegram"
         # todo: just pass the expected CRC16 rather than the entire telegram
         if not tele or not self.message:
@@ -156,7 +156,7 @@ class P1Meter():
             log.error("Error during CRC check: {}".format(e))
             return False
 
-    async def process(self, tele:dict):
+    async def process(self, tele: dict):
         # check CRC
         if not self.crc_ok(tele):
             self.fb.update(Feedback.LED_P1METER, Feedback.RED)
@@ -221,7 +221,7 @@ class P1Meter():
                 log.debug(b'TX telegram message: ----->')
                 log.debug(telegram)
                 log.debug(b'-----')
-            swriter.write(telegram + self.crc_rcvd  + '\r\n')
+            swriter.write(telegram + self.crc_received  + '\r\n')
             await swriter.drain()       # pylint: disable= not-callable
             self.messages_tx += 1
             await asyncio.sleep_ms(1)
