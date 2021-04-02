@@ -17,8 +17,11 @@ RUN_SPLITTER = True
 RUN_SIM = False
 #------------------------------------------------
 
+INTERVAL_MIN = 60       # publish readings no more than every X seconds.
+
 INTERVAL_MEM = 600      # force mem cleanup every 10 minutes
 INTERVAL_ALL = 300      # force sending all information at 5 m interval
+INTERVAL_SIM = 1        # seconds betwen packets sent by simulator
 
 # Base SSID to connect to
 homenet = {'SSID': 'IoT', 'password': 'MicroPython'}
@@ -31,23 +34,14 @@ broker = {'server': '192.168.1.99', 'user': 'sensor', 'password': 'SensorPasspor
 # webrepl password: max 8 char length
 webrepl = {'active': True, 'password': "4242"}
 
-#Network ID
-NETWORK_ID = b'p1_meter'
-
-TEST = False
-#autodetect my test ESP32 - M5 or Lolin32 or EP32-Pico
-if TEST or hexlify(unique_id())[-6:] in [b'2598b4', b'19e74c', b'40665c', b'19e74c']:
-    TEST = RUN_SIM = True
-    NETWORK_ID += b'_' + hexlify(unique_id())[-6:]
-
-#MQTT topic follows network ID
-ROOT_TOPIC = NETWORK_ID
+#Network host ID
+HOST_NAME = b'p1_meter'
 
 # Serial Pins for meter connection
 # UART 1 = Receive
 # Pull-up resistor Wired into GPIO 15 for crosscable :-(
-RX_PIN_NR = const(15)       # P1_in - RJ12-5 - Crosscable
-CTS_PIN_NR = const(5)       # P1_in - RJ12-2 - Crosscable
+RX_PIN_NR = 15              # P1_in - RJ12-5 - Cross cable
+CTS_PIN_NR = const(5)       # P1_in - RJ12-2 - Cross cable
 
 
 # Splitter or SYM Port (also UART1)
@@ -55,6 +49,20 @@ CTS_PIN_NR = const(5)       # P1_in - RJ12-2 - Crosscable
 TX_PIN_NR = const(18)       # P1_Out - Pin 5 - Straight cable
 DTR_PIN_NR = const(19)      # P1_Out - Pin 2 - Straight cable
 
+TEST = False
+#autodetect my test ESP32 - M5 or Lolin32 or EP32-Pico
+if TEST or hexlify(unique_id())[-6:] in [b'2598b4', b'583790', b'19e74c', b'40665c', b'19e74c']:
+    # Test setup - no splitter
+    TEST = True
+    RUN_SIM = TEST
+    RUN_SPLITTER = not TEST
+    HOST_NAME += b'_' + hexlify(unique_id())[-6:]
+    if hexlify(unique_id())[-6:] in [b'2598b4', b'583790']: # M5Stack
+       RX_PIN_NR = 23   # to allow wiring on M5 Base
+    INTERVAL_MEM = 30   # impatient while testing
+
+#MQTT topic follows network ID
+ROOT_TOPIC = HOST_NAME
 
 #also publish telegram as json
 publish_as_json = False
