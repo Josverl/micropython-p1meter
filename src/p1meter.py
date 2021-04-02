@@ -1,9 +1,11 @@
 import logging
-import ujson as json #used for deepcopy op dict
+
+import ujson as json #used for deepcopy of dict
 import ure as re
+import utime as time
 from machine import UART, Pin
 import uasyncio as asyncio
-from utilities import  crc16, Feedback
+from utilities import  crc16, Feedback, seconds_between
 
 from mqttclient import MQTTClient2
 import config as cfg
@@ -21,7 +23,7 @@ ______  __   ___  ___     _
 | |_/ /`| |  | .  . | ___| |_ ___ _ __ 
 |  __/  | |  | |\/| |/ _ \ __/ _ \ '__|
 | |    _| |_ | |  | |  __/ ||  __/ |   
-\_|    \___/ \_|  |_/\___|\__\___|_|     v 1.2.0
+\_|    \___/ \_|  |_/\___|\__\___|_|     v 1.2.1
 """)
 
 if cfg.RUN_SPLITTER:
@@ -68,9 +70,13 @@ class P1Meter():
                          txbuf=2048, rxbuf=2048)                     # larger buffer for testing and stability
         log.info("setup to receive P1 meter data : {}".format(self.uart))
         self.last = []
+        self.unsent = []
+        self.last_time = time.localtime()
         self.message = ''
         self.messages_rx = 0
         self.messages_tx = 0
+        self.messages_pub = 0
+        self.messages_err = 0
         self.mqtt_client = mq_client
         self.fb = fb
         self.crc_received = ''
@@ -159,51 +165,62 @@ class P1Meter():
     async def process(self, tele: dict):
         # check CRC
         if not self.crc_ok(tele):
+            self.messages_err += 1
             self.fb.update(Feedback.LED_P1METER, Feedback.RED)
             return
         else:
+            self.messages_rx += 1
             self.fb.update(Feedback.LED_P1METER, Feedback.GREEN)
 
         # Send a copy of the received message (self.message)
         if cfg.RUN_SPLITTER:
             await self.send(self.message)
 
-        # what has changed since last time ?
-        newdata = set(tele['data']) - set(self.last)
+        # what has changed since last time  ?
+        newdata = set(tele['data']) - set(self.last) 
 
-        readings = []
-        for line in newdata:
-            # split data into readings
-            out = re.match('(.*?)\((.*)\)', line)           #pylint: disable=anomalous-backslash-in-string
-            if out:
-                lineinfo = {'meter': out.group(1), 'reading':None, 'unit': None}
+        delta_sec = seconds_between(self.last_time, time.localtime())
+        if delta_sec < 30:
+            log.info('suppress send')
+            ## do not send too often, remember any changes to send later
+            self.unsent = set(self.unsent) | set(newdata)
+            log.info('unsent : {}'.format(self.unsent))
+        else: 
+            # send this data and any unsent information
+            readings = []
+            for line in newdata | set(self.unsent):
+                # split data into readings
+                out = re.match('(.*?)\((.*)\)', line)           #pylint: disable=anomalous-backslash-in-string
+                if out:
+                    lineinfo = {'meter': out.group(1), 'reading':None, 'unit': None}
 
-                reading = out.group(2).split('*')
-                if len(reading) == 2:
-                    lineinfo['reading'] = reading[0]
-                    lineinfo['unit'] = reading[1]
-                else:
-                    lineinfo['reading'] = reading[0]
-                # a few meters have compound content, that remain seperated by `)(`
-                # split and use  only the last section (ie gas meter reading)
-                lineinfo['reading'] = lineinfo['reading'].split(')(')[-1]
+                    reading = out.group(2).split('*')
+                    if len(reading) == 2:
+                        lineinfo['reading'] = reading[0]
+                        lineinfo['unit'] = reading[1]
+                    else:
+                        lineinfo['reading'] = reading[0]
+                    # a few meters have compound content, that remain seperated by `)(`
+                    # split and use  only the last section (ie gas meter reading)
+                    lineinfo['reading'] = lineinfo['reading'].split(')(')[-1]
 
-                log.debug(lineinfo)
-                readings.append(lineinfo)
-        # replace codes for ROOT_TOPICs
-        reading = replace_codes(readings)
+                    log.debug(lineinfo)
+                    readings.append(lineinfo)
+            # replace codes for ROOT_TOPICs
+            reading = replace_codes(readings)
 
-        log.debug("readings: {}".format(readings))
+            log.debug("readings: {}".format(readings))
 
-        # todo: add timeout ?
-        if await self.mqtt_client.publish_readings(readings):
-            # only safe last if mqtt publish was ok
-            self.last = tele['data'].copy()
-        else:
-            self.fb.update(Feedback.LED_MQTT, Feedback.YELLOW)
-        # Turn off
-        log.info('led off')
-        self.fb.update(Feedback.LED_P1METER, Feedback.BLACK)
+            # todo: add timeout ?
+            if await self.mqtt_client.publish_readings(readings):
+                # only safe last if mqtt publish was ok
+                self.last = tele['data'].copy()
+                self.unsent = []
+                self.last_time = time.localtime()
+            else:
+                self.fb.update(Feedback.LED_MQTT, Feedback.YELLOW)
+            # Turn off
+            self.fb.update(Feedback.LED_P1METER, Feedback.BLACK)
 
     async def send(self, telegram: str):
         """

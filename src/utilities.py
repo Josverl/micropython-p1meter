@@ -64,6 +64,10 @@ def getntptime():
     except (OSError, OverflowError):
         pass
 
+def seconds_between(t1, t2):
+    "The number of seconds between tw localtime() parameters."
+    return time.mktime(t2) - time.mktime(t1)
+
 class Feedback():
     "simple feedback via 3 neopixel leds"
     # fb = Feedback()

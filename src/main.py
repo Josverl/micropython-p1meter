@@ -39,6 +39,10 @@ async def maintain_memory(interval: int = INTERVAL_MEM):
         glb_mqtt_client.publish_one(ROOT_TOPIC + b"/sensor/mem_free", str(after))
         glb_mqtt_client.publish_one(ROOT_TOPIC + b"/sensor/cpu_temp", str(cpu_temp()))
         glb_mqtt_client.publish_one(ROOT_TOPIC + b"/sensor/client_id", NETWORK_ID)
+        glb_mqtt_client.publish_one(ROOT_TOPIC + b"/sensor/telegrams_rx", glb_p1_meter.messages_rx)
+        glb_mqtt_client.publish_one(ROOT_TOPIC + b"/sensor/telegrams_tx", glb_p1_meter.messages_tx)
+        glb_mqtt_client.publish_one(ROOT_TOPIC + b"/sensor/telegrams_pub", glb_p1_meter.messages_pub)
+        glb_mqtt_client.publish_one(ROOT_TOPIC + b"/sensor/telegrams_err", glb_p1_meter.messages_err)
         await asyncio.sleep(interval)
 
 async def update_leds():

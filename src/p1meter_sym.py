@@ -31,7 +31,7 @@ class P1MeterSIM():
         self.mqtt_client = mq_client
         self.fb = fb
 
-    async def sender(self, interval: int = 5):
+    async def sender(self, interval: int = 1):
         """
         Simulates data being sent from the p1 port to aid in debugging
         this assumes that pin rx and tx are connected
@@ -47,7 +47,7 @@ class P1MeterSIM():
             await swriter.drain()       # pylint: disable= not-callable
             self.messages_tx += 1
             await asyncio.sleep_ms(1)
-            self.mqtt_client.publish_one(cfg.ROOT_TOPIC + b"/sensor/massages_simulated", str(self.messages_tx))
+            self.mqtt_client.publish_one(cfg.ROOT_TOPIC + b"/sensor/telegrams_simulated", str(self.messages_tx))
             self.fb.update(Feedback.LED_P1METER, Feedback.BLACK)
 
             await asyncio.sleep(interval)
