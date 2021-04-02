@@ -26,7 +26,7 @@ If you want to monitor your energy usage
 
 **in addition it:** 
 
-- logs a few relevant sensors statistics to MQTT (cllient_id,  free memory, CPU core temperature)
+- logs a few relevant sensors statistics to MQTT (client_id,  free memory, CPU core temperature)
 - Allows you to view logs and other terminal output over wifi via the webrepl
 - Allows you to update update the configuration over the network using FTP 
 
@@ -102,21 +102,54 @@ this allows normal functionality to use the USB port (UART 0) for configuration 
 The RJ12 connector in the electricity meter uses the following layout 
 ![Rj12](docs/RJ-12.png)
 
-Connect the ESP32 to an RJ12 cable/connector following the diagram.
+Connect the ESP32 to an RJ12 cable/connector using the below diagram.
 
-**connection via straight 4/6 wire cable :**
-Note that this will reverse the pin numbers on the female connector that you are using
+**Connection via straight 4/6 wire cable :**  
+*Note:* This will reverse the pin numbers on the female connector that you are using
 
-| RJ12 P1       | cable|RJ12 Meter| ESP32 Pin | color     | 4w test cable | comments
-| --------------|----- |----------| ----------| ----------|---------------|------------
-| 1 - 5v out    | ---> | 6        | 5v or Vin |           |               | [Optional]. max 250 mA When using a 6 pin cable you can use the power source provided by the meter.
-| 2 - CTS       | <--- | 5        | gpio-5    | blue      |  zwart        | Clear to Send,  High = allow P1 Meter to send data
-| 3 - Data GND  | <--> | 4        | GND       | black     |  rood         | 
-| 4 - -         |      | 3        | -         |           |  groen        | 
-| 5 - RXD (data)| ---> | 2        | gpio-2    | yellow    |  geel         | 1K external pull-up resistor needed
-| 6 - Power GND | ---- | 1        | GND       |           |               | [Optional]
+| RJ12 P1       | cable|RJ12 Meter| ESP32 Pin | RJ12 6w cable | 4w cable| comments
+| --------------|----- |----------| ----------| ----------|---------|------------
+| 1 - 5v out    | ===> | 6        | 5v or Vin |           |         | [Optional] 1️⃣ 
+| 2 - CTS       | <--- | 5        | gpio-5    | blue      | black   | Clear to Send,  High = allow P1 Meter to send data
+| 3 - Data GND  | ---- | 4        | GND       | black     | red     | 
+| 4 - nc        |      | 3        | -         |           | green   | 
+| 5 - RXD (data)| ---> | 2        | gpio-15   | yellow    | yellow  | 1K external pull-up resistor needed
+| 6 - Power GND | <=== | 1        | GND       |           |         | [Optional] 1️⃣
+
+1️⃣ max 250 mA When using a 6 pin cable you can use the power source provided by the meter.
 
 
+## Adjusting for Straight or Cross cables
+
+
+If you are unsure which cable will be used to connect,
+or if you want to build some flexibility in your hardware design , it is possible to allow both cable types by :
+ - Output connecting both Pin 3 and Pin 4  Ground 
+
+this will ten allow you to swap the functions of pin 18 and 19 from 
+- CTS / RXD  for a straight cable
+- RDX / CTS for a cross cable
+
+| RJ12 P1       | cable| Straight Cable | Cross Cable| -
+| --------------|----- |----------|---------- |-
+| 1 - 5v out    | ===> | 1        | 6         | not connected
+| 2 - CTS       | <--- | 2        | 5         | CTS / RXD  software select
+| 3 - GND data  | ---- | 3        | 4         | \ GND
+| 4 - GND data  | ---- | 4        | 3         | / GND
+| 5 - RXD (data)| ---> | 5        | 2         | RDX / CTS software select
+| 6 - GND power | <=== | 6        | 1         | not connected
+
+I recommend that in this design you do not connect the Power 5v to your board 
+
+
+# Internal wiring:
+
+## P1 In Connector 
+ESP32 Pin | Color      | Female Connector |
+----------|------------|------------------
+GND       | black      | pin 4 & 3 
+gpio-2    | pale blue  | pin 5
+gpio-5    | yellow/blk | pin 2 | 
 
 ## operation
 
@@ -268,7 +301,7 @@ To enable this via wiring:
   - this message has a few random values added to it 
   - the CRC16 is calculated before sending
 - the message is passed of the serial connect ( see .2 above) to the input 
-- the message is is processed by the normal software and sent to mqtt usign a different root topic to avoid interfering with actual input..
+- the message is is processed by the normal software and sent to mqtt using a different root topic to avoid interfering with actual input..
 
 ![simulated output in mqtt](docs/simulator_mqtt.png)
 

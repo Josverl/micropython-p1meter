@@ -1,7 +1,7 @@
 # todo
 
 ## functional:
- - [ ] add signal leds for: 
+ - [x] add signal leds for: 
       - [x] network connected - green
       - [x] mqtt connected + ping ok - yellow
       - [x] telegram received (toggle) - blue
@@ -36,11 +36,15 @@ tcpip_adapter_get_hostname() but should eventually be configurable.
         INFO     mqttclient publish 23 meter readings
         ERROR    mqttclient Problem sending json to MQTT : [Errno 104] ECONNRESET
         ERROR    mqttclient Oops while disconnecting MQTT : [Errno 104] ECONNRESET
-
        
 ```
 mqtt client:  
+
+ERROR    mqttclient OS Error -2
+ 
+
  - [ ] the readings stay the same if the meter goes offline - how to deal with this 
+
  
  - [ ] switch to more stable MQTT lib
  - [ ] clear last sent state on mqtt reconnect to force sending all
