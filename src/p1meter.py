@@ -14,7 +14,7 @@ import config as cfg
 # Logging
 log = logging.getLogger('p1meter')
 #set level no lower than ..... for this log only
-log.level = max(logging.DEBUG, logging._level) #pylint: disable=protected-access
+#log.level = min(logging.DEBUG, logging._level) #pylint: disable=protected-access
 VERBOSE = False
 
 print(r"""
@@ -49,8 +49,8 @@ def replace_codes(readings: list)-> list:
 
                 if reading['unit'] and len(reading['unit']) > 0:
                     reading['meter'] += '_' + reading['unit']
-
-                log.debug("{} --> {}".format(code[0], reading['meter']))
+                if VERBOSE:
+                    log.debug("{} --> {}".format(code[0], reading['meter']))
                 break
     return readings
 
@@ -70,13 +70,13 @@ class P1Meter():
                          txbuf=2048, rxbuf=2048)                     # larger buffer for testing and stability
         log.info("setup to receive P1 meter data : {}".format(self.uart))
         self.last = []
-        self.unsent = []
+        self.pending = {}
         self.last_time = time.localtime()
         self.message = ''
-        self.messages_rx = 0
-        self.messages_tx = 0
-        self.messages_pub = 0
-        self.messages_err = 0
+        self.telegrams_rx = 0
+        self.telegrams_tx = 0
+        self.telegrams_pub = 0
+        self.telegrams_err = 0
         self.mqtt_client = mq_client
         self.fb = fb
         self.crc_received = ''
@@ -179,24 +179,25 @@ class P1Meter():
                 # a few meters have compound content, that remain seperated by `)(`
                 # split and use  only the last section (ie gas meter reading)
                 lineinfo['reading'] = lineinfo['reading'].split(')(')[-1]
-
-                log.debug(lineinfo)
+                if VERBOSE:
+                    log.debug(lineinfo)
                 readings.append(lineinfo)
         return readings
 
     async def process(self, tele: dict):
         # check CRC
         if not self.crc_ok(tele):
-            self.messages_err += 1
+            self.telegrams_err += 1
             self.fb.update(Feedback.LED_P1METER, Feedback.RED)
             return
         else:
-            self.messages_rx += 1
+            self.telegrams_rx += 1
             self.fb.update(Feedback.LED_P1METER, Feedback.GREEN)
 
         # Send a copy of the received message (self.message)
         if cfg.RUN_SPLITTER:
             await self.send(self.message)
+            self.telegrams_tx += 1
 
         # what has changed since last time  ?
         newdata = set(tele['data']) - set(self.last)
@@ -206,25 +207,29 @@ class P1Meter():
         readings = replace_codes(readings)
         log.debug("readings: {}".format(readings))
 
+        # move list into dictionary
+        for reading in readings:
+            self.pending[reading['meter']] = reading
+
         delta_sec = seconds_between(self.last_time, time.localtime())
-        if delta_sec < 30:
-            log.info('suppress send')
+        if  delta_sec < 30 and self.telegrams_pub >0 :
             ## do not send too often, remember any changes to send later
-            #self.unsent = set(self.unsent) | set(newdata)
-            log.info('unsent : {}'.format(self.unsent))
+            log.info('suppress send')
+            log.debug('pending : {}'.format(self.pending.keys))
+
         else: 
             # send this data and any unsent information
-            log.info('send')
-        
-        if await self.mqtt_client.publish_readings(readings):
-            # only safe last if mqtt publish was ok
-            self.last = tele['data'].copy()
-            self.unsent = []
-            self.last_time = time.localtime()
-        else:
-            self.fb.update(Feedback.LED_MQTT, Feedback.YELLOW)
-        # Turn off
-        self.fb.update(Feedback.LED_P1METER, Feedback.BLACK)
+            readings = list(self.pending.values())
+            if await self.mqtt_client.publish_readings(readings):
+                # only safe last if mqtt publish was ok
+                self.telegrams_pub += 1
+                self.last = tele['data'].copy()
+                self.pending = {}
+                self.last_time = time.localtime()
+            else:
+                self.fb.update(Feedback.LED_MQTT, Feedback.YELLOW)
+            # Turn off
+            self.fb.update(Feedback.LED_P1METER, Feedback.BLACK)
 
     async def send(self, telegram: str):
         """
@@ -244,7 +249,7 @@ class P1Meter():
                 log.debug(b'-----')
             swriter.write(telegram + self.crc_received  + '\r\n')
             await swriter.drain()       # pylint: disable= not-callable
-            self.messages_tx += 1
+            self.telegrams_tx += 1
             await asyncio.sleep_ms(1)
 
-            # self.mqtt_client.publish_one(cfg.ROOT_TOPIC + b"/sensor/message_tx", str(self.messages_tx))
+

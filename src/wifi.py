@@ -37,7 +37,7 @@ def activate():
     # connect to a known WiFi ( from config file)
     if not wlan.active():
         wlan.active(True)
-        wlan.config(dhcp_hostname=cfg.NETWORK_ID)
+        wlan.config(dhcp_hostname=cfg.HOST_NAME)
     if not wlan.isconnected():
         log.info("Activating Wlan {0}".format(cfg.homenet['SSID']))
         wlan.connect(cfg.homenet['SSID'], cfg.homenet['password'])

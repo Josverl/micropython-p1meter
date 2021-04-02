@@ -11,7 +11,7 @@ import config as cfg
 # Logging
 log = logging.getLogger('SIMULATION')
 #set level no lower than ..... for this log only
-log.level = max(logging.INFO, logging._level) #pylint: disable=protected-access
+log.level = min(logging.INFO, logging._level) #pylint: disable=protected-access
 VERBOSE = False
 
 #####################################################
@@ -23,7 +23,7 @@ class P1MeterSIM():
     """
     P1 meter to fake a Dutch electricity meter and generate some reading to test the rest of the software
     """
-    messages_tx = 0
+    telegrams_tx = 0
     def __init__(self, uart: UART, mq_client: MQTTClient2, fb: Feedback):
         # do not re-init port for sim
         self.uart = uart
@@ -31,7 +31,7 @@ class P1MeterSIM():
         self.mqtt_client = mq_client
         self.fb = fb
 
-    async def sender(self, interval: int = 1):
+    async def sender(self, interval: int = cfg.INTERVAL_SIM):
         """
         Simulates data being sent from the p1 port to aid in debugging
         this assumes that pin rx and tx are connected
@@ -45,9 +45,9 @@ class P1MeterSIM():
                 log.debug(b'TX telegram message: '+telegram)
             swriter.write(telegram)
             await swriter.drain()       # pylint: disable= not-callable
-            self.messages_tx += 1
+            self.telegrams_tx += 1
             await asyncio.sleep_ms(1)
-            self.mqtt_client.publish_one(cfg.ROOT_TOPIC + b"/sensor/telegrams_simulated", str(self.messages_tx))
+            self.mqtt_client.publish_one(cfg.ROOT_TOPIC + b"/sensor/telegrams_simulated", str(self.telegrams_tx))
             self.fb.update(Feedback.LED_P1METER, Feedback.BLACK)
 
             await asyncio.sleep(interval)

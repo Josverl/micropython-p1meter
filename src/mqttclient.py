@@ -9,7 +9,7 @@ import uasyncio as asyncio
 from umqtt.simple import MQTTClient, MQTTException
 from wifi import wlan, wlan_stable
 
-from config import broker, publish_as_json, NETWORK_ID, ROOT_TOPIC
+from config import broker, publish_as_json, HOST_NAME, ROOT_TOPIC
 from utilities import reboot
 
 # Logging
@@ -86,7 +86,7 @@ class MQTTClient2(object):
         global _conn_errors
         if self.mqtt_client is None:
             log.info("create mqtt client {0}".format(self.server))
-            self.mqtt_client = MQTTClient(NETWORK_ID, self.server, user=self.user, password=self.password)
+            self.mqtt_client = MQTTClient(HOST_NAME, self.server, user=self.user, password=self.password)
         if wlan.status() == network.STAT_GOT_IP:
             try:
                 print("connecting to mqtt server {0}".format(self.server))
