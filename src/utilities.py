@@ -35,10 +35,6 @@ def cpu_temp()->float:
     # print("T = {0:4d} deg F or {1:5.1f}  deg C".format(tf,tc))
     return tc
 
-def enable_rts(enable: bool = True):
-    _pin_rts = Pin(5, Pin.OUT, enable)
-    _pin_rts.value(enable)
-
 def reboot(delay: int = 3):
     fb = Feedback()            # reboot after x seconds stopped when in production
     print('Rebooting in {} seconds, Ctrl-C to abort'.format(3*delay))
