@@ -60,6 +60,8 @@ class P1Meter():
     """
     cts: Pin
     dtr: Pin
+    fb: Feedback
+    uart: UART
 
     def __init__(self, mq_client: MQTTClient2, fb: Feedback):
         # init port for receiving 115200 Baud 8N1 using inverted polarity in RX/TX
@@ -117,6 +119,7 @@ class P1Meter():
                     log.debug("clean : {}".format(line))
                 if line[0] == '/':
                     log.debug('header found')
+                    self.fb.update(Feedback.LED_P1METER, Feedback.GREEN)
                     tele = dictcopy(empty)
                     self.message = line
 
@@ -138,6 +141,7 @@ class P1Meter():
                     # add to message
                     self.message += line
 
+    @property
     def crc(self) -> str:
         "Compute the crc of self.message"
         buf = self.message.encode()
@@ -150,7 +154,8 @@ class P1Meter():
         if not tele or not self.message:
             return False
         try:
-            crc = self.crc()
+            # cache crc to avid wasting time
+            crc = self.crc
             log.debug("RX computed CRC {0}".format(crc))
             if crc in tele['footer']:
                 return True
@@ -190,8 +195,8 @@ class P1Meter():
             self.fb.update(Feedback.LED_P1METER, Feedback.RED)
             return
         else:
-            self.telegrams_rx += 1
             self.fb.update(Feedback.LED_P1METER, Feedback.GREEN)
+            self.telegrams_rx += 1
 
         # Send a copy of the received message (self.message)
         if cfg.RUN_SPLITTER:
@@ -211,13 +216,15 @@ class P1Meter():
             self.pending[reading['meter']] = reading
 
         delta_sec = seconds_between(self.last_time, time.localtime())
-        if  delta_sec < 30 and self.telegrams_pub >0 :
+        if  delta_sec < cfg.INTERVAL_MIN and self.telegrams_pub > 0:
             ## do not send too often, remember any changes to send later
             log.info('suppress send')
             log.debug('pending : {}'.format(self.pending.keys))
-
-        else: 
+            # turn off
+            self.fb.update(Feedback.LED_P1METER, Feedback.BLACK)
+        else:
             # send this data and any unsent information
+            self.fb.update(Feedback.LED_P1METER, Feedback.GREEN)
             readings = list(self.pending.values())
             if await self.mqtt_client.publish_readings(readings):
                 # only safe last if mqtt publish was ok
@@ -228,7 +235,6 @@ class P1Meter():
             else:
                 self.fb.update(Feedback.LED_MQTT, Feedback.YELLOW)
             # Turn off
-            self.fb.update(Feedback.LED_P1METER, Feedback.BLACK)
 
     async def send(self, telegram: str):
         """

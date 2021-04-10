@@ -8,9 +8,6 @@ from p1meter import P1Meter
 import wifi
 from mqttclient import MQTTClient2
 import config as cfg
-#from config import ROOT_TOPIC, RUN_SIM, HOST_NAME, RUN_SPLITTER
-#from config import INTERVAL_MEM, INTERVAL_ALL
-
 from utilities import cpu_temp, Feedback, reboot, getntptime
 
 # Splitter and Simulator cannot be run at the same time as they use the same UART
@@ -21,6 +18,7 @@ if cfg.RUN_SIM and not cfg.RUN_SPLITTER:
 log = logging.getLogger('main')
 fb = Feedback()
 
+
 def set_global_exception():
     def handle_exception(loop, context):            #pylint: disable=unused-argument
         import sys                                  #pylint: disable=import-outside-toplevel
@@ -30,7 +28,7 @@ def set_global_exception():
     loop.set_exception_handler(handle_exception)
 
 async def maintain_memory(interval: int = cfg.INTERVAL_MEM):
-    "run GC at a 10 minute interval"
+    "run GC at a ~10 minute interval"
     while 1:
         before = gc.mem_free()                              #pylint: disable=no-member
         gc.collect()

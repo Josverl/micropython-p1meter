@@ -50,15 +50,15 @@ TX_PIN_NR = const(18)       # P1_Out - Pin 5 - Straight cable
 DTR_PIN_NR = const(19)      # P1_Out - Pin 2 - Straight cable
 
 TEST = False
-#autodetect my test ESP32 - M5 or Lolin32 or EP32-Pico
-if TEST or hexlify(unique_id())[-6:] in [b'2598b4', b'583790', b'19e74c', b'40665c', b'19e74c']:
+#autodetect my test ESP32 - M5,  EP32-Pico
+if TEST or hexlify(unique_id())[-6:] in [b'2598b4', b'19e74c', b'40665c', b'19e74c']:
     # Test setup - no splitter
     TEST = True
     RUN_SIM = TEST
     RUN_SPLITTER = not TEST
     HOST_NAME += b'_' + hexlify(unique_id())[-6:]
     if hexlify(unique_id())[-6:] in [b'2598b4', b'583790']: # M5Stack
-       RX_PIN_NR = 23   # to allow wiring on M5 Base
+        RX_PIN_NR = 23   # to allow wiring on M5 Base
     INTERVAL_MEM = 30   # impatient while testing
 
 #MQTT topic follows network ID
