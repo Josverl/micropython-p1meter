@@ -79,11 +79,11 @@ class Feedback():
 
     BLACK = (0, 0, 0)
     WHITE = (20, 20, 20)
-    RED = (64, 0, 0)
-    GREEN = (2, 16, 2)      # dim green
-    BLUE = (0, 0, 64)
-    YELLOW = (64, 64, 0)
-    PURPLE = (64, 0, 64)
+    RED = (48, 0, 0)
+    GREEN = (2, 12, 2)      # dim green
+    BLUE = (0, 0, 16)
+    YELLOW = (32, 32, 0)
+    PURPLE = (32, 0, 32)
     np = None
 
     def __init__(self):
