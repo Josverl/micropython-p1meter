@@ -86,7 +86,7 @@ class MQTTClient2(object):
         global _conn_errors
         if self.mqtt_client is None:
             log.info("create mqtt client {0}".format(self.server))
-            self.mqtt_client = MQTTClient(HOST_NAME, self.server, user=self.user, password=self.password)
+            self.mqtt_client = MQTTClient(HOST_NAME, self.server, user=self.user, password=self.password, keepalive=30)
         if wlan.status() == network.STAT_GOT_IP:
             try:
                 print("connecting to mqtt server {0}".format(self.server))
