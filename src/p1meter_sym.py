@@ -73,7 +73,7 @@ class P1MeterSIM():
 
         u = random.randint(-1000, 1000) /100
         msg = msg.format(0, max(u, 0), -1*min(u, 0))
-        buf = bytearray(msg)
+        buf = bytearray(msg, 'utf8')
         crc_computed = "{0:04X}".format(crc16(buf))
         # log.debug("TX CRC16 buf : {}".format(buf))
         log.debug("TX computed CRC {0}".format(crc_computed))
