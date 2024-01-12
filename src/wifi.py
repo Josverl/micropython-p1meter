@@ -5,7 +5,8 @@ import utime as time
 import webrepl
 import config as cfg
 import uftpd
-
+from config import webrepl as config_webrepl
+from utilities import getntptime
 
 wlan = network.WLAN(network.STA_IF)
 wlan_stable = False
@@ -18,9 +19,11 @@ log = logging.getLogger(__name__)
 
 async def ensure_connected():
     global wlan_stable
-    # check state on first call.
+    # check state and sync time on first call.
     if check_stable():
         log_ifconfig()
+        getntptime()
+
     while True:
         if not wlan or not wlan.active() or not wlan.isconnected():
             wlan_stable = False
@@ -34,7 +37,7 @@ def activate():
     # connect to a known WiFi ( from config file)
     if not wlan.active():
         wlan.active(True)
-        wlan.config(dhcp_hostname=cfg.NETWORK_ID)
+        wlan.config(dhcp_hostname=cfg.HOST_NAME)
     if not wlan.isconnected():
         log.info("Activating Wlan {0}".format(cfg.homenet['SSID']))
         wlan.connect(cfg.homenet['SSID'], cfg.homenet['password'])
@@ -56,7 +59,7 @@ async def connect_as():
     else:
         log.debug("Wlan already active")
 
-    await check_stable(duration =100)
+    await check_stable(duration=100)
     if wlan_stable:
         log_ifconfig()
     else:
@@ -72,13 +75,13 @@ async def connect_as():
         #deactivate ( to re-activate later)
         wlan.active(False)
         wlan_stable = False
-        log.error("Unable to connect to Wlan {}; {}".format(cfg.homenet['SSID'], cause ))
+        log.error("Unable to connect to Wlan {}; {}".format(cfg.homenet['SSID'], cause))
 
 
 def log_ifconfig():
     # prettyprint the interface's IP/netmask/gw/DNS addresses
     config = wlan.ifconfig()
-    log.info("Wifi IP:{0}, Network mask:{1}, Router:{2}, DNS: {3}".format( *config ))
+    log.info("Wifi IP:{0}, Network mask:{1}, Router:{2}, DNS: {3}".format(*config))
 
 
 async def check_stable(duration: int = 2000)->bool:
@@ -90,11 +93,16 @@ async def check_stable(duration: int = 2000)->bool:
         await asyncio.sleep_ms(10)
     # connected and IP
     wlan_stable = wlan.isconnected() and wlan.status() == network.STAT_GOT_IP
+    uftpd.restart()
+    log.info('ftp server restarted')
     try:
-        log.info('webrepl and ftp server starting')
-        webrepl.start(password='4242')      # todo: move password to config
-        uftpd.restart()
+        if config_webrepl["active"]:
+            log.info('start webrepl')
+            webrepl.start(password=config_webrepl["password"])
+    except ValueError as e:
+        log.warning('webrepl password > 8 characters{}'.format(e))
     except OSError as e:
-        log.warning('Unable to start webrepl {}'.format(e))
+        log.warning('Unable to start webrepl{}'.format(e))
+
     return wlan_stable
 

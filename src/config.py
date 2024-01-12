@@ -5,52 +5,73 @@ from  ubinascii import  hexlify
 from machine import unique_id
 
 #------------------------------------------------
-# governs the overall debug logging 
-DEBUG = True
+# governs the overall debug logging
+DEBUG = False
+
+#------------------------------------------------
+# Split the signal (using TX_PIN_NR)
+RUN_SPLITTER = True
+
 #------------------------------------------------
 # run the simulator for testing (using TX_PIN_NR)
 RUN_SIM = False
 #------------------------------------------------
 
+INTERVAL_MIN = 60       # publish readings no more than every X seconds.
+
 INTERVAL_MEM = 600      # force mem cleanup every 10 minutes
 INTERVAL_ALL = 300      # force sending all information at 5 m interval
-
-#autodetect my test ESP32 - M5
-if hexlify(unique_id())[-6:] == b'2598b4':
-    RUN_SIM = True
+INTERVAL_SIM = 1        # seconds betwen packets sent by simulator
 
 # Base SSID to connect to
 homenet = {'SSID': 'IoT', 'password': 'MicroPython'}
 
 #the mqtt broker to connect to
 #broker = {'server': 'homeassistant.local', 'user': 'sensor', 'password': 'SensorPassport'}
+
 # Q&D Workaround for mDNS Failure 
 broker = {'server': '192.168.1.99', 'port': '8883', 'user': 'sensor', 'password': 'SensorPassport'}
 
-#Network ID
-NETWORK_ID = b'p1_meter'
+# webrepl password: max 8 char length
+webrepl = {'active': True, 'password': "4242"}
 
-if RUN_SIM:
-    NETWORK_ID += b'_' + hexlify(unique_id())[-6:]
-
-#MQTT topic follows network ID
-ROOT_TOPIC = NETWORK_ID
+#Network host ID
+HOST_NAME = b'p1_meter'
 
 # Serial Pins for meter connection
-# TX pin is only used for testing/simulation but needs to be specified
-RX_PIN_NR = const(2)
-TX_PIN_NR = const(18)
-CTS_PIN_NR = const(5)
+# UART 1 = Receive
+# Pull-up resistor Wired into GPIO 15 for crosscable :-(
+RX_PIN_NR = 15              # P1_in - RJ12-5 - Cross cable
+CTS_PIN_NR = const(5)       # P1_in - RJ12-2 - Cross cable
+
+
+# Splitter or SYM Port (also UART1)
+# TX pin must be specified
+TX_PIN_NR = const(18)       # P1_Out - Pin 5 - Straight cable
+DTR_PIN_NR = const(19)      # P1_Out - Pin 2 - Straight cable
+
+TEST = False
+#autodetect my test ESP32 - M5,  EP32-Pico
+if TEST or hexlify(unique_id())[-6:] in [b'2598b4', b'19e74c', b'40665c', b'19e74c']:
+    # Test setup - no splitter
+    TEST = True
+    RUN_SIM = TEST
+    RUN_SPLITTER = not TEST
+    HOST_NAME += b'_' + hexlify(unique_id())[-6:]
+    if hexlify(unique_id())[-6:] in [b'2598b4', b'583790']: # M5Stack
+        RX_PIN_NR = 23   # to allow wiring on M5 Base
+    INTERVAL_MEM = 30   # impatient while testing
+
+#MQTT topic follows network ID
+ROOT_TOPIC = HOST_NAME
 
 #also publish telegram as json
 publish_as_json = False
 
 #------------------------------------------------
 # A few Leds - optional
-# avoid 25 Speaker on M5Base 
+# avoid 25 Speaker on M5Base
 NEOPIXEL_PIN = const(13)
-
-
 
 #------------------------------------------------
 
@@ -71,7 +92,7 @@ NEOPIXEL_PIN = const(13)
 #     and then use that value in the replacement string by specifying \\1 (or \\2 for the 2nd capture).
 
 #     the equipment number for the equipment_id and the equipment_type appears to be different.
-
+#pylint: disable=bad-whitespace, bad-continuation
 codetable = (
     ("1-3:0.2.8.*"          , "equipment/version"),
     ("0-0:1.0.0.*"          , "date_time"),                         # ASCII presentation of Time stamp with Year, Month, Day, Hour, Minute, Second, and an indication whether DST is active (X=S) or DST is not active (X=W)

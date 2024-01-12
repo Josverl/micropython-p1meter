@@ -6,49 +6,62 @@ from machine import UART
 import uasyncio as asyncio
 from utilities import crc16, Feedback
 from mqttclient import MQTTClient2
-from config import ROOT_TOPIC
+import config as cfg
 
 # Logging
 log = logging.getLogger('SIMULATION')
 #set level no lower than ..... for this log only
-log.level = max( logging.INFO , logging._level) #pylint: disable=protected-access
+log.level = min(logging.INFO, logging._level) #pylint: disable=protected-access
 VERBOSE = False
 
 #####################################################
 # test rig
 #####################################################
+print(r"""
+ _____ ________  ____   _ _       ___ _____ ___________ 
+/  ___|_   _|  \/  | | | | |     / _ \_   _|  _  | ___ \
+\ `--.  | | | .  . | | | | |    / /_\ \| | | | | | |_/ /
+ `--. \ | | | |\/| | | | | |    |  _  || | | | | |    / 
+/\__/ /_| |_| |  | | |_| | |____| | | || | \ \_/ / |\ \ 
+\____/ \___/\_|  |_/\___/\_____/\_| |_/\_/  \___/\_| \_|
+""")
+
 
 
 class P1MeterSIM():
     """
     P1 meter to fake a Dutch electricity meter and generate some reading to test the rest of the software
     """
-    def __init__(self, uart:UART, mq_client :MQTTClient2, fb:Feedback):
+    telegrams_tx: int = 0
+    uart: UART
+    mqtt_client: MQTTClient2
+    fb: Feedback
+
+    def __init__(self, uart: UART, mq_client: MQTTClient2, fb: Feedback):
         # do not re-init port for sim
         self.uart = uart
         # self.telegram = template
-        self.messages = 0
         self.mqtt_client = mq_client
         self.fb = fb
 
-    async def sender(self, interval :int = 5):
+    async def sender(self, interval: int = cfg.INTERVAL_SIM):
         """
         Simulates data being sent from the p1 port to aid in debugging
-        this assumes that pin rx=2 and tx=15 are connected
+        this assumes that pin rx and tx are connected
         """
         swriter = asyncio.StreamWriter(self.uart, {})
         while True:
-            self.fb.update(Feedback.L_P1, Feedback.PURPLE)
-            log.warning('send simulated telegram')
+            self.fb.update(Feedback.LED_P1METER, Feedback.PURPLE)
+            log.warning('send simulated telegram on pin {}'.format(cfg.TX_PIN_NR))
             telegram = self.fake_message()
             if VERBOSE: 
                 log.debug(b'TX telegram message: '+telegram)
             swriter.write(telegram)
             await swriter.drain()       # pylint: disable= not-callable
-            self.messages += 1
+            self.telegrams_tx += 1
             await asyncio.sleep_ms(1)
-            self.mqtt_client.publish_one(ROOT_TOPIC + b"/sensor/simulator", str(self.messages))
-            self.fb.update(Feedback.L_P1, Feedback.BLACK)
+            self.mqtt_client.publish_one(cfg.ROOT_TOPIC + b"/sensor/telegrams_simulated", str(self.telegrams_tx))
+            self.fb.update(Feedback.LED_P1METER, Feedback.BLACK)
 
             await asyncio.sleep(interval)
 
@@ -58,8 +71,8 @@ class P1MeterSIM():
         #msg = meter1
         msg = meter3
 
-        u = random.randint(-1000,1000) /100
-        msg = msg.format(0,max(u, 0), -1*min(u,0))
+        u = random.randint(-1000, 1000) /100
+        msg = msg.format(0, max(u, 0), -1*min(u, 0))
         buf = bytearray(msg)
         crc_computed = "{0:04X}".format(crc16(buf))
         # log.debug("TX CRC16 buf : {}".format(buf))
@@ -77,7 +90,8 @@ meter1 = """/XMX5LGBBFG1012650850
 0-1:24.2.1(200909220000S)(05907.828*m3)
 !"""
 
-meter2=(   "/KFM5KAIFA-METER\n"
+meter2 = (
+        "/KFM5KAIFA-METER\n"
         "\n"
         "1-3:0.2.8(42)\n"
         "0-0:1.0.0(170124213128W)\n"
@@ -170,11 +184,4 @@ meter3 = """/XMX5LGBBFG1012463817
 0-1:24.2.1(180624020000S)(00968.481*m3)
 !"""
 
-print(r"""
- _____ ________  ____   _ _       ___ _____ ___________ 
-/  ___|_   _|  \/  | | | | |     / _ \_   _|  _  | ___ \
-\ `--.  | | | .  . | | | | |    / /_\ \| | | | | | |_/ /
- `--. \ | | | |\/| | | | | |    |  _  || | | | | |    / 
-/\__/ /_| |_| |  | | |_| | |____| | | || | \ \_/ / |\ \ 
-\____/ \___/\_|  |_/\___/\_____/\_| |_/\_/  \___/\_| \_|
-""")
+

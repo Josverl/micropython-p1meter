@@ -9,7 +9,7 @@ import uasyncio as asyncio
 from umqtt.simple import MQTTClient, MQTTException
 from wifi import wlan, wlan_stable
 
-from config import broker, publish_as_json, NETWORK_ID, ROOT_TOPIC
+from config import broker, publish_as_json, HOST_NAME, ROOT_TOPIC
 from utilities import reboot
 
 # Logging
@@ -49,11 +49,11 @@ class MQTTClient2(object):
                 state = False
             else:
                 # do server ping
-                log.debug('try mqtt_client.ping()')
                 try: 
                     self.mqtt_client.ping()
                     self.ping_failed = 0
                 except (OSError, MQTTException) as e:
+                    log.warning('mqtt_client.ping() failed')
                     self.ping_failed =+ 10
                     if self.ping_failed > 50:
                         log.debug("Disconnecting due to ping fail count")

@@ -13,6 +13,7 @@ from config import DEBUG
 #############################################################
 log = logging.getLogger('boot')
 
+# pylint: disable= bad-whitespace
 class LogFormatter(logging.Handler):
     RESET       = u"\u001b[0m"
     FG_RED      = u"\u001b[31m"
@@ -41,17 +42,15 @@ logging.getLogger().addHandler(LogFormatter())
 
 
 if DEBUG:
-    # esp.osdebug(0)          # redirect vendor O/S debugging messages to UART(0)
-    # esp.osdebug(0, esp.LOG_ERROR)
-    esp.osdebug(0, esp.LOG_VERBOSE)
+    esp.osdebug(0, esp.LOG_VERBOSE)         # show all HW info
     logging.basicConfig(level=logging.DEBUG)
-    #logging.basicConfig(level=logging.INFO)
 else:
-    #esp.osdebug(None)       # turn off vendor O/S debugging messages
-    esp.osdebug(0, esp.LOG_ERROR)   # show errors only
+    esp.osdebug(0, esp.LOG_ERROR)           # show HW errors only
     logging.basicConfig(level=logging.INFO)
 
 # WiFI: no need to init wifi,it is established by an async task
 
-# log.info("Set clock frequency to 80Mhz")
-# machine.freq(80*1000000)
+import machine
+FREQ = 240
+log.info("Set clock frequency to {}Mhz".format(FREQ))
+machine.freq(FREQ*1000000)
