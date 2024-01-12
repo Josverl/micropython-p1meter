@@ -1,1 +1,3 @@
-micropy-cli
+# pip install -r dev-requirememts --target typings --no-user 
+
+micropython-esp32-stubs
