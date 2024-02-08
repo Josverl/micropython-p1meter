@@ -3,14 +3,15 @@
 #####################################################
 
 import logging
-import network
-import ujson as json
-import uasyncio as asyncio
-from umqtt.simple import MQTTClient, MQTTException
-from wifi import wlan, wlan_stable
 
-from config import broker, publish_as_json, HOST_NAME, ROOT_TOPIC
+import network
+import uasyncio as asyncio
+import ujson as json
+from umqtt.simple import MQTTClient, MQTTException
+
+from config import HOST_NAME, ROOT_TOPIC, broker, publish_as_json
 from utilities import reboot
+from wifi import wlan, wlan_stable
 
 # Logging
 log = logging.getLogger('mqttclient')
@@ -90,7 +91,7 @@ class MQTTClient2(object):
         global _conn_errors
         if self.mqtt_client is None:
             log.info("create mqtt client {0}".format(self.server))
-            self.mqtt_client = MQTTClient(NETWORK_ID, self.server, port=self.port, user=self.user, password=self.password)
+            self.mqtt_client = MQTTClient(HOST_NAME, self.server, port=self.port, user=self.user, password=self.password, keepalive=30)
         if wlan.status() == network.STAT_GOT_IP:
             try:
                 print("connecting to mqtt server {0}".format(self.server))
@@ -161,4 +162,5 @@ class MQTTClient2(object):
             log.error("Problem sending {} to MQTT : {}".format(topic, error) )
             r = False
             self.disconnect()
+        return r
         return r
