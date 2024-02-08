@@ -163,4 +163,3 @@ class MQTTClient2(object):
             r = False
             self.disconnect()
         return r
-        return r
