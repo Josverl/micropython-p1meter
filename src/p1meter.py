@@ -170,24 +170,27 @@ class P1Meter():
         "split the received data into readings(meter, reading, unit)"
         readings = []
         for line in newdata:
-            out = re.match('(.*?)\((.*)\)', line)           #pylint: disable=anomalous-backslash-in-string
-            if out:
-                lineinfo = {'meter': out.group(1), 'reading':None, 'unit': None}
+            try:
+                out = re.match('(.*?)\((.*)\)', line)           #pylint: disable=anomalous-backslash-in-string
+                if out:
+                    lineinfo = {'meter': out.group(1), 'reading':None, 'unit': None}
 
-                reading = out.group(2).split('*')
-                if len(reading) == 2:
-                    lineinfo['reading'] = reading[0]
-                    lineinfo['unit'] = reading[1]
-                else:
-                    lineinfo['reading'] = reading[0]
-                # a few meters have compound content, that remain seperated by `)(`
-                # split and use  only the last section (ie gas meter reading)
-                lineinfo['reading'] = lineinfo['reading'].split(')(')[-1]
-                if VERBOSE:
-                    log.debug(lineinfo)
-                readings.append(lineinfo)
+                    reading = out.group(2).split('*')
+                    if len(reading) == 2:
+                        lineinfo['reading'] = reading[0]
+                        lineinfo['unit'] = reading[1]
+                    else:
+                        lineinfo['reading'] = reading[0]
+                    # a few meters have compound content, that remain seperated by `)(`
+                    # split and use  only the last section (ie gas meter reading)
+                    lineinfo['reading'] = lineinfo['reading'].split(')(')[-1]
+                    if VERBOSE:
+                        log.debug(lineinfo)
+                    readings.append(lineinfo)
+            except Exception as e:                                   #pylint: disable=broad-except
+                log.debug(f"Error {e} processsing line: {line}")
         return readings
-
+    
     async def process(self, tele: dict):
         # check CRC
         if not self.crc_ok(tele):
