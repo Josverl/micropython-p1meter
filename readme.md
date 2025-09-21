@@ -186,6 +186,21 @@ ROOT_TOPIC = b"p1_meter"
 publish_as_json = False
 ```
 
+#### Configuration for Belgian DSMR Meters
+
+If you're using a Belgian DSMR meter, you need to update the gas meter OBIS code in the `codetable` in [config.py](src/config.py). 
+
+Change the line:
+```python
+("(\d)-1:24.2.1"        , "total/gas_meter"),
+```
+to:
+```python
+("0-1:24.2.3"           , "total/gas_meter"),
+```
+
+This change is necessary because Belgian meters use a different OBIS code for gas consumption readings compared to Dutch meters.
+
 
 
 ## Updating the configuration over WiFi
