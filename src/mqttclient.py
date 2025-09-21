@@ -55,7 +55,7 @@ class MQTTClient2(object):
                     self.ping_failed = 0
                 except (OSError, MQTTException) as e:
                     log.warning('mqtt_client.ping() failed')
-                    self.ping_failed =+ 10
+                    self.ping_failed += 10
                     if self.ping_failed > 50:
                         log.debug("Disconnecting due to ping fail count")
                         self.disconnect()
