@@ -113,7 +113,7 @@ codetable = (
     ("1-0:1.7.0.*"          , "instant/consumption"),              # Actual electricity power delivered (+P) in 1 Wattresolution
     ("1-0:2.7.0.*"          , "instant/production"),               # Actual electricity power received  (-P) in 1 Wattresolution
 
-    ("(\d)-1:24.2.1"        , "total/gas_meter"),
+    ("(\d)-1:24.2.1"        , "total/gas_meter"),                # Dutch meters; Belgian meters use ("0-1:24.2.3" , "total/gas_meter")
                                                                 # consumption in Watt
     ("1-0:21.7.0"           , "instant/power_consumption/l1"),       # Instantaneous active power (+P) in W resolution
     ("1-0:41.7.0"           , "instant/power_consumption/l2"),
