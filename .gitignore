@@ -2,3 +2,5 @@ scratch/*
 .pytest_cache
 all-stubs
 **/__pycache__
+# Local credentials override — never commit this file
+src/config_local.py

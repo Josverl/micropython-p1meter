@@ -52,13 +52,12 @@ If you want to monitor your energy usage
 
 **Firmware:**
 
- - Use micropython 1.13 for or newer for the esp32 http://micropython.org/download/esp32/
-   you can download the firmware directly from 
-   
-    - ESP32 GENERIC-SPIRAM : [esp32spiram-idf3-20200902-v1.13.bin](http://micropython.org/resources/firmware/esp32spiram-idf3-20200902-v1.13.bin)
-   
- - Install the micropython firmware to the ESP32 using the procedure documented in:
-   [Getting started with MicroPython on the ESP32 — MicroPython 1.13 documentation](http://docs.micropython.org/en/latest/esp32/tutorial/intro.html#deploying-the-firmware)
+ - Use **MicroPython 1.24** or newer for the ESP32.
+   Download the latest stable firmware from the official download page:
+   [https://micropython.org/download/ESP32_GENERIC/](https://micropython.org/download/ESP32_GENERIC/)
+
+ - Install the MicroPython firmware to the ESP32 using the procedure documented in:
+   [Getting started with MicroPython on the ESP32](https://docs.micropython.org/en/latest/esp32/tutorial/intro.html#deploying-the-firmware)
 
  - the code in this repo; see the next paragraph.
 
@@ -66,14 +65,12 @@ If you want to monitor your energy usage
 
 ## Install the P1 meter software on the ESP32 MCU
  - git clone this repo
-  - adjust config.py settings :
-    - homenet : WiFi SSID and Password 
-    - broker : MQtt broker address, port, user and password
-    - RX pins to connect to the P1 Port
-    - Options (TX pin if you want to test drive without a connection to a P1 port)
+  - adjust settings:
+    - copy `src/config_local.py.example` → `src/config_local.py` and fill in your WiFi/MQTT credentials
+    - edit `src/config.py` if you need to change pin assignments or operational flags
  - upload code from /src folder to the board
-    - flash Micropython 1.13 or newer ( 1 time) 
-    - upload the source code ( using pymakr or any other tool)
+    - flash MicroPython 1.24 or newer (1 time)
+    - upload the source code (using pymakr or any other tool)
   - reboot the board 
 
 
@@ -161,29 +158,53 @@ gpio-5    | yellow/blk | pin 2 |
 | 1 | mqtt    | Not connected | Connected to MQTT broker | **Yellow**: Data could not be send to Broker
 | 0 | wifi    | Not connected | IP address acquired      |
 
-### configuration file 
+### configuration file
 
-<document What to change in the config file>
+Please adjust the relevant settings in [config.py](src/config.py).
+**Never commit real credentials.**  Instead copy
+[config_local.py.example](src/config_local.py.example) to `config_local.py`
+on the device (it is already in `.gitignore`) and put your credentials there.
 
-Please adjust the relevant settings in [config.py](src/config.py)
 ``` python
 # Serial Pins for meter connection
-# TX pin is only used for testing/simulation but needs to be specified
-RX_PIN_NR = const(2)
-TX_PIN_NR = const(15)
-RTS_PIN_NR = const(5)
+RX_PIN_NR = 15              # P1_in - RJ12-5
+CTS_PIN_NR = const(5)       # P1_in - RJ12-2
+TX_PIN_NR = const(18)       # P1_Out (splitter / simulator)
+DTR_PIN_NR = const(19)
 
 # Base SSID to connect to
-homenet = {'SSID': 'IoT', 'password': 'MicroPython'}
+homenet = {'SSID': 'YourSSID', 'password': 'YourPassword'}
 
-#the mqtt broker to connect to
-broker = {'server': 'homeassistant.local', 'user': 'sensor', 'password': 'beepbeep'}
+# MQTT broker — set ssl=True and port=8883 to enable TLS
+broker = {
+    'server': 'homeassistant.local',
+    'port': 1883,
+    'user': 'sensor',
+    'password': 'SensorPassport',
+    'ssl': False,
+}
 
-HOST_NAME = b'p1_meter_' + hexlify(unique_id())
-ROOT_TOPIC = b"p1_meter"
+HOST_NAME = b'p1_meter'
+ROOT_TOPIC = HOST_NAME        # MQTT root topic
 
-#also publish telegram as json
+# Also publish the full telegram as a JSON blob
 publish_as_json = False
+```
+
+#### Enabling TLS/SSL for MQTT
+
+Change `broker` in your `config_local.py`:
+
+```python
+broker = {
+    'server': 'homeassistant.local',
+    'port': 8883,
+    'user': 'sensor',
+    'password': 'your_password',
+    'ssl': True,
+    # Optionally add SNI / CA cert:
+    # 'ssl_params': {'server_hostname': 'homeassistant.local'},
+}
 ```
 
 #### Configuration for Belgian DSMR Meters
@@ -287,20 +308,17 @@ You can run the built-in  simulator for testing (using TX_PIN_NR)
   - connect the rx and tx pins with a wire 
   ``` python
     # Serial Pins for meter connection
-    # TX pin is only used for testing/simulation but needs to be specified
-    RX_PIN_NR = const(2)
-    TX_PIN_NR = const(15)
+    RX_PIN_NR = 15
+    TX_PIN_NR = const(18)
     CTS_PIN_NR = const(5)
 
-    #------------------------------------------------
     # A few Leds - optional
     NEOPIXEL_PIN = const(13)
-
   ```
     - edit the configuration file `config.py` to enable the Simulator 
   ``` python
       RUN_SIM = True
-````
+  ```
 ## Simulation / test mode 
 The p1 meter comes with a built-in test and simulation mode that allows you to test and  change the software, without needing to physically connect it to a electricity meter.
 
