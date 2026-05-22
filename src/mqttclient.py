@@ -113,7 +113,7 @@ class MQTTClient2(object):
                     elif e.args[0] in (113, 23) : # EHOSTUNREACH
                         log.error("OS Error {}: {}".format(e, "Host unreachable, check server address or network"))
                     elif e.args[0] < 0 : # some negative socket error
-                        _conn_errors =+ 1
+                        _conn_errors += 1
                         if _conn_errors > 10:
                             log.error("OS Error {}: {}".format(e, "attempting reboot to fix"))
                             reboot()
