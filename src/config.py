@@ -49,10 +49,10 @@ homenet = {'SSID': 'IoT', 'password': 'MicroPython'}
 # Optional: add 'ssl_params': {'server_hostname': 'broker.example.com'} for SNI.
 broker = {
     'server': 'homeassistant.local',
-    'port': 1883,           # 1883 = plain MQTT; 8883 = MQTT over TLS
+    'port': 1883,
     'user': 'sensor',
     'password': 'SensorPassport',
-    'ssl': False,
+    'ssl': False,           # Set True and change port to 8883 to enable TLS
 }
 
 # webrepl password: max 8 char length

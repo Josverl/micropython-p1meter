@@ -31,7 +31,7 @@ async def maintain_memory(mq_client, p1_meter, interval: int = cfg.INTERVAL_MEM)
         gc.collect()
         gc.threshold(gc.mem_free() // 4 + gc.mem_alloc())   #pylint: disable=no-member
         after = gc.mem_free()                               #pylint: disable=no-member
-        log.debug("freed: {0:,} - now free: {1:,}".format(after-before, after).replace(',', '.'))
+        log.debug("freed: {0:,} - now free: {1:,}".format(after - before, after).replace(',', '.'))
         mq_client.publish_one(cfg.ROOT_TOPIC + b"/sensor/mem_free", str(after))
         mq_client.publish_one(cfg.ROOT_TOPIC + b"/sensor/cpu_temp", str(cpu_temp()))
         mq_client.publish_one(cfg.ROOT_TOPIC + b"/sensor/client_id", cfg.HOST_NAME)
