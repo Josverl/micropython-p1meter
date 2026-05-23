@@ -1,4 +1,4 @@
-# Stub for MicroPython 'network' module.
+# Mock for MicroPython 'network' module.
 
 STA_IF = 0
 AP_IF = 1

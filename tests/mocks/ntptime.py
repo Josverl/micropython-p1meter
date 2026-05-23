@@ -1,4 +1,4 @@
-# Stub for MicroPython 'ntptime' module.
+# Mock for MicroPython 'ntptime' module.
 
 NTP_DELTA = 3155673600
 

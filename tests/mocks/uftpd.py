@@ -1,4 +1,4 @@
-# Stub for src/uftpd.py — replaces the real FTP server during tests.
+# Mock for src/uftpd.py — replaces the real FTP server during tests.
 
 
 def start(*args, **kwargs):

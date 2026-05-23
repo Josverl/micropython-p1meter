@@ -13,21 +13,21 @@ import os
 _here = os.path.dirname(__file__)
 if not _here:
     _here = '.'
-sys.path.insert(0, _here + '/stubs')
+sys.path.insert(0, _here + '/mocks')
 sys.path.insert(1, _here + '/../src/lib')
 sys.path.insert(2, _here + '/../src')
 
 import unittest
 
 # Import only the parsereadings method — instantiate a minimal object to avoid
-# hardware initialisation.  The stubs handle machine/neopixel/etc. imports.
+# hardware initialisation.  The mocks handle machine/neopixel/etc. imports.
 from p1meter import P1Meter
 from mqttclient import MQTTClient2
 from utilities import Feedback
 
 
 def _make_meter():
-    "Return a P1Meter instance backed by stub hardware."
+    "Return a P1Meter instance backed by mock hardware."
     return P1Meter(mq_client=MQTTClient2(), fb=Feedback())
 
 

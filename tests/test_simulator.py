@@ -13,7 +13,7 @@ import os
 _here = os.path.dirname(__file__)
 if not _here:
     _here = '.'
-sys.path.insert(0, _here + '/stubs')
+sys.path.insert(0, _here + '/mocks')
 sys.path.insert(1, _here + '/../src/lib')
 sys.path.insert(2, _here + '/../src')
 

@@ -1,4 +1,4 @@
-# Stub for umqtt.simple — used by tests running on the MicroPython Unix port.
+# Mock for umqtt.simple — used by tests running on the MicroPython Unix port.
 
 
 class MQTTException(Exception):

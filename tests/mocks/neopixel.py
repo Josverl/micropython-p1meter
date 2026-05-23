@@ -1,4 +1,4 @@
-# Stub for MicroPython 'neopixel' module.
+# Mock for MicroPython 'neopixel' module.
 
 
 class NeoPixel:

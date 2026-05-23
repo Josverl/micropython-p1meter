@@ -12,7 +12,7 @@ that can be run on:
 
 ```
 tests/
-  stubs/          Hardware shims for the Unix port (machine, esp32, neopixel, …)
+  mocks/            Hardware mocks for the Unix port (machine, esp32, neopixel, …)
   test_crc16.py            CRC-16/ARC algorithm (utilities.crc16)
   test_parsereadings.py    OBIS line parser (P1Meter.parsereadings)
   test_replace_codes.py    OBIS→topic translation (replace_codes + codetable)
@@ -53,7 +53,7 @@ micropython tests/test_crc16.py  # single test
 # Install mpremote if needed
 pip install mpremote
 
-# Copy only what's needed (stubs are not required on real hardware)
+# Copy only what's needed (mocks are not required on real hardware)
 mpremote cp -r src/ :
 mpremote cp -r tests/ :
 
@@ -64,15 +64,15 @@ mpremote run tests/test_parsereadings.py
 
 ---
 
-## How the stubs work
+## How the mocks work
 
-When tests run on the Unix port, `tests/stubs/` is prepended to `sys.path`
+When tests run on the Unix port, `tests/mocks/` is prepended to `sys.path`
 **before** `src/`.  This means that `import machine` resolves to
-`tests/stubs/machine.py` (a pure-Python shim) rather than the real hardware
+`tests/mocks/machine.py` (a pure-Python mock) rather than the real hardware
 module, allowing hardware-independent logic to be tested without an ESP32.
 
 On an actual ESP32 the real modules take precedence from MicroPython's frozen
-modules — the stubs are never loaded.
+modules — the mocks are never loaded.
 
 ---
 
@@ -80,5 +80,5 @@ modules — the stubs are never loaded.
 
 1. Create `tests/test_<feature>.py` using the standard `unittest.TestCase` API.
 2. Add the path-setup block at the top (copy from an existing test file).
-3. Import only the module you need; the stubs will handle hardware dependencies.
+3. Import only the module you need; the mocks will handle hardware dependencies.
 4. Run with `micropython tests/test_<feature>.py`.

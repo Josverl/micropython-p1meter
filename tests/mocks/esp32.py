@@ -1,4 +1,4 @@
-# Stub for MicroPython 'esp32' module.
+# Mock for MicroPython 'esp32' module.
 
 
 def raw_temperature():

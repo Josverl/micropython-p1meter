@@ -1,4 +1,4 @@
-# Stub for MicroPython 'webrepl' module.
+# Mock for MicroPython 'webrepl' module.
 
 
 def start(password=None):

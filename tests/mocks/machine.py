@@ -1,4 +1,4 @@
-# Stub for MicroPython 'machine' module.
+# Mock for MicroPython 'machine' module.
 # Used by the test suite when running on the MicroPython Unix port (no real hardware).
 
 
@@ -40,7 +40,7 @@ class UART:
         return 0
 
     def __repr__(self):
-        return 'UART(stub)'
+        return 'UART(mock)'
 
 
 def unique_id():
@@ -48,4 +48,4 @@ def unique_id():
 
 
 def reset():
-    raise SystemExit('machine.reset() called in stub')
+    raise SystemExit('machine.reset() called in mock')
