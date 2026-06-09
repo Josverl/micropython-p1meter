@@ -1,11 +1,10 @@
 import logging
 
-import ujson as json #used for deepcopy of dict
 import ure as re
 import utime as time
 from machine import UART, Pin
 import uasyncio as asyncio
-from utilities import  crc16, Feedback, seconds_between
+from utilities import crc16, Feedback, seconds_between
 
 from mqttclient import MQTTClient2
 import config as cfg
@@ -13,9 +12,6 @@ import config as cfg
 
 # Logging
 log = logging.getLogger('p1meter')
-#set level no lower than ..... for this log only
-#log.level = min(logging.DEBUG, logging._level) #pylint: disable=protected-access
-VERBOSE = False
 
 print(r"""
 ______  __   ___  ___     _            
@@ -23,8 +19,8 @@ ______  __   ___  ___     _
 | |_/ /`| |  | .  . | ___| |_ ___ _ __ 
 |  __/  | |  | |\/| |/ _ \ __/ _ \ '__|
 | |    _| |_ | |  | |  __/ ||  __/ |   
-\_|    \___/ \_|  |_/\___|\__\___|_|     v 1.3.0
-""")
+\_|    \___/ \_|  |_/\___|\__\___|_|     v {0}
+""".format(cfg.VERSION))
 
 if cfg.RUN_SPLITTER:
     print(r"""
@@ -34,13 +30,9 @@ if cfg.RUN_SPLITTER:
     |__/|_|  |___||_| |_|  |_| |___||_|\\
     """)
 
-def dictcopy(d: dict):
-    "returns a copy of a dict using copy though json"
-    return json.loads(json.dumps(d))
-
 
 # @timed_function
-def replace_codes(readings: list)-> list:
+def replace_codes(readings: list) -> list:
     "replace the OBIS codes by their ROOT_TOPIC as defined in the codetable"
     for reading in readings:
         for code in cfg.codetable:
@@ -49,8 +41,7 @@ def replace_codes(readings: list)-> list:
 
                 if reading['unit'] and len(reading['unit']) > 0:
                     reading['meter'] += '_' + reading['unit']
-                if VERBOSE:
-                    log.debug("{} --> {}".format(code[0], reading['meter']))
+                log.debug("{} --> {}".format(code[0], reading['meter']))
                 break
     return readings
 
@@ -85,11 +76,12 @@ class P1Meter():
         # receive set CTS/RTS High
         self.cts = Pin(cfg.CTS_PIN_NR, Pin.OUT)
         self.cts.on()                 # Ask P1 meter to send data
-        # In case the
         self.dtr = Pin(cfg.DTR_PIN_NR, Pin.IN, Pin.PULL_DOWN)
+        # Clear cached state after MQTT reconnects to force a full re-publish.
+        mq_client.add_reconnect_callback(self.clearlast)
 
 
-    def clearlast(self)-> None:
+    def clearlast(self) -> None:
         "trigger sending the complete next telegram by forgetting the previous"
         if len(self.last) > 0:
             log.warning("trigger sending the complete next telegram by forgetting the previous")
@@ -99,28 +91,24 @@ class P1Meter():
     async def receive(self):
         "Receive telegrams from the p1 meter and send them once received"
         sreader = asyncio.StreamReader(self.uart)
-        #start with an empty telegram, explicit to avoid references
-        empty = {'header': '', 'data': [], 'footer': ''}
-        tele = dictcopy(empty)
+        tele = {'header': '', 'data': [], 'footer': ''}
         log.info("listening on UART1 RX Pin:{} for P1 meter data".format(cfg.RX_PIN_NR))
         if cfg.RUN_SPLITTER:
-            log.info("repeating on UART1 RX Pin:{} ".format(cfg.TX_PIN_NR))
+            log.info("repeating on UART1 TX Pin:{} ".format(cfg.TX_PIN_NR))
         while True:
             line = await sreader.readline()         #pylint: disable= not-callable
-            if VERBOSE:
-                log.debug("raw: {}".format(line))
+            log.debug("raw: {}".format(line))
             if line:
                 # to string
                 try:
                     line = line.decode()
                 except BaseException as error:      #pylint: disable= unused-variable
                     line = "--noise--"
-                if VERBOSE:
-                    log.debug("clean : {}".format(line))
+                log.debug("clean : {}".format(line))
                 if line[0] == '/':
                     log.debug('header found')
                     self.fb.update(Feedback.LED_P1METER, Feedback.GREEN)
-                    tele = dictcopy(empty)
+                    tele = {'header': '', 'data': [], 'footer': ''}
                     self.message = line
 
                 elif line[0] == '!':
@@ -129,7 +117,6 @@ class P1Meter():
                     self.message += "!"
                     if len(line) > 5:
                         self.crc_received = line[1:5]
-                    # self.message += line
                     # Process the received telegram
                     await self.process(tele)
                     # start with a blank slate
@@ -145,16 +132,14 @@ class P1Meter():
     def crc(self) -> str:
         "Compute the crc of self.message"
         buf = self.message.encode()
-        # TMI log.debug( "buf: {}".format(buf))
         return "{0:04X}".format(crc16(buf))
 
 
-    def crc_ok(self, tele: dict = None)-> bool:
+    def crc_ok(self, tele: dict = None) -> bool:
         "run CRC-16 check on the received telegram"
         if not tele or not self.message:
             return False
         try:
-            # cache crc to avid wasting time
             crc = self.crc
             log.debug("RX computed CRC {0}".format(crc))
             if crc in tele['footer']:
@@ -173,7 +158,7 @@ class P1Meter():
             try:
                 out = re.match('(.*?)\((.*)\)', line)           #pylint: disable=anomalous-backslash-in-string
                 if out:
-                    lineinfo = {'meter': out.group(1), 'reading':None, 'unit': None}
+                    lineinfo = {'meter': out.group(1), 'reading': None, 'unit': None}
 
                     reading = out.group(2).split('*')
                     if len(reading) == 2:
@@ -184,13 +169,12 @@ class P1Meter():
                     # a few meters have compound content, that remain seperated by `)(`
                     # split and use  only the last section (ie gas meter reading)
                     lineinfo['reading'] = lineinfo['reading'].split(')(')[-1]
-                    if VERBOSE:
-                        log.debug(lineinfo)
+                    log.debug(lineinfo)
                     readings.append(lineinfo)
             except Exception as e:                                   #pylint: disable=broad-except
                 log.debug(f"Error {e} processsing line: {line}")
         return readings
-    
+
     async def process(self, tele: dict):
         # check CRC
         if not self.crc_ok(tele):
@@ -219,7 +203,7 @@ class P1Meter():
             self.pending[reading['meter']] = reading
 
         delta_sec = seconds_between(self.last_time, time.localtime())
-        if  delta_sec < cfg.INTERVAL_MIN and self.telegrams_pub > 0:
+        if delta_sec < cfg.INTERVAL_MIN and self.telegrams_pub > 0:
             ## do not send too often, remember any changes to send later
             log.info('suppress send')
             log.debug('pending : {}'.format(self.pending.keys))
@@ -230,20 +214,18 @@ class P1Meter():
             self.fb.update(Feedback.LED_P1METER, Feedback.GREEN)
             readings = list(self.pending.values())
             if await self.mqtt_client.publish_readings(readings):
-                # only safe last if mqtt publish was ok
+                # only save last if mqtt publish was ok
                 self.telegrams_pub += 1
                 self.last = tele['data'].copy()
                 self.pending = {}
                 self.last_time = time.localtime()
             else:
                 self.fb.update(Feedback.LED_MQTT, Feedback.YELLOW)
-            # Turn off
 
     async def send(self, telegram: str):
         """
         Sends/repeats telegram, with added CRC16
         """
-
         log.info('Copy telegram')
         if not self.dtr.value():
             log.warning("Splitter DTR is Low, will not send P1 telegram data")
@@ -251,12 +233,9 @@ class P1Meter():
             swriter = asyncio.StreamWriter(self.uart, {})
 
             self.fb.update(Feedback.LED_P1METER, Feedback.BLUE)
-            if VERBOSE:
-                log.debug(b'TX telegram message: ----->')
-                log.debug(telegram)
-                log.debug(b'-----')
-            swriter.write(telegram + self.crc_received  + '\r\n')
+            log.debug(b'TX telegram message: ----->')
+            log.debug(telegram)
+            log.debug(b'-----')
+            swriter.write(telegram + self.crc_received + '\r\n')
             await swriter.drain()       # pylint: disable= not-callable
             await asyncio.sleep_ms(1)
-
-

@@ -1,0 +1,27 @@
+# config_local.py — local credentials override
+#
+# Copy this file to config_local.py on your device (NOT in the repo).
+# Values defined here override the defaults in config.py.
+# config_local.py is listed in .gitignore so it is never accidentally committed.
+#
+# Usage on device:
+#   try:
+#       from config_local import *   # noqa: F401,F403
+#   except ImportError:
+#       pass  # no local overrides — use defaults from config.py
+
+# WiFi credentials
+homenet = {'SSID': 'YourSSID', 'password': 'YourWifiPassword'}
+
+# MQTT broker — set ssl=True and port=8883 for TLS
+broker = {
+    'server': 'homeassistant.local',
+    'port': 1883,
+    'user': 'your_mqtt_user',
+    'password': 'your_mqtt_password',
+    'ssl': False,
+    # 'ssl_params': {'server_hostname': 'homeassistant.local'},  # uncomment for TLS SNI
+}
+
+# WebREPL password (max 8 characters)
+webrepl = {'active': True, 'password': 'change me'}

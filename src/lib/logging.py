@@ -34,11 +34,11 @@ class Handler:
 class Logger:
 
     level = NOTSET
-    handlers = []
     record = LogRecord()
 
     def __init__(self, name):
         self.name = name
+        self.handlers = []  # instance attribute — not shared across Logger instances
 
     def _level_str(self, level):
         l = _level_dict.get(level)

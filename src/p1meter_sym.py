@@ -10,9 +10,7 @@ import config as cfg
 
 # Logging
 log = logging.getLogger('SIMULATION')
-#set level no lower than ..... for this log only
 log.level = min(logging.INFO, logging._level) #pylint: disable=protected-access
-VERBOSE = False
 
 #####################################################
 # test rig
@@ -54,8 +52,7 @@ class P1MeterSIM():
             self.fb.update(Feedback.LED_P1METER, Feedback.PURPLE)
             log.warning('send simulated telegram on pin {}'.format(cfg.TX_PIN_NR))
             telegram = self.fake_message()
-            if VERBOSE: 
-                log.debug(b'TX telegram message: '+telegram)
+            log.debug(b'TX telegram message: ' + telegram)
             swriter.write(telegram)
             await swriter.drain()       # pylint: disable= not-callable
             self.telegrams_tx += 1
@@ -101,8 +98,6 @@ meter2 = (
         "1-0:2.8.1(000000.000*kWh)\n"
         "1-0:2.8.2(000000.000*kWh)\n"
         "0-0:96.14.0(0001)\n"
-        "1-0:1.7.0(02.793*kW)\n"
-        "1-0:2.7.0(00.000*kW)\n"
         "1-0:1.7.0({1:06.3f}*kW)\n"
         "1-0:2.7.0({2:06.3f}*kW)\n"
         "0-0:96.7.21(00001)\n"

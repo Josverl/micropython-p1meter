@@ -4,6 +4,9 @@ from micropython import const
 from  ubinascii import  hexlify
 from machine import unique_id
 
+# Single source-of-truth version string; also shown in the startup banner.
+VERSION = "1.3.0"
+
 #------------------------------------------------
 # governs the overall debug logging
 DEBUG = False
@@ -17,20 +20,40 @@ RUN_SPLITTER = True
 RUN_SIM = False
 #------------------------------------------------
 
-INTERVAL_MIN = 60       # publish readings no more than every X seconds.
+# Minimum interval between MQTT publishes (seconds).
+# Readings received more frequently are queued and sent together.
+INTERVAL_MIN = 60
 
-INTERVAL_MEM = 600      # force mem cleanup every 10 minutes
-INTERVAL_ALL = 300      # force sending all information at 5 m interval
-INTERVAL_SIM = 1        # seconds betwen packets sent by simulator
+# How often to run the GC and publish housekeeping metrics (seconds).
+INTERVAL_MEM = 600
+
+# How often to force a full re-publish of all readings, even if unchanged (seconds).
+# Must be greater than INTERVAL_MIN.
+INTERVAL_ALL = 300
+
+# Seconds between packets emitted by the built-in simulator.
+INTERVAL_SIM = 1
+
+# ---------------------------------------------------------------------------
+# Credentials — do NOT commit real passwords here.
+# Copy config_local.py.example to config_local.py, fill in your values, and
+# make sure config_local.py is listed in .gitignore (it already is).
+# If config_local.py exists on the device it overrides the defaults below.
+# ---------------------------------------------------------------------------
 
 # Base SSID to connect to
 homenet = {'SSID': 'IoT', 'password': 'MicroPython'}
 
-#the mqtt broker to connect to
-#broker = {'server': 'homeassistant.local', 'user': 'sensor', 'password': 'SensorPassport'}
-
-# Q&D Workaround for mDNS Failure 
-broker = {'server': '192.168.1.99', 'port': '8883', 'user': 'sensor', 'password': 'SensorPassport'}
+# MQTT broker connection details.
+# Set 'ssl': True and 'port': 8883 to enable TLS (requires a broker with TLS support).
+# Optional: add 'ssl_params': {'server_hostname': 'broker.example.com'} for SNI.
+broker = {
+    'server': 'homeassistant.local',
+    'port': 1883,
+    'user': 'sensor',
+    'password': 'SensorPassport',
+    'ssl': False,           # Set True and change port to 8883 to enable TLS
+}
 
 # webrepl password: max 8 char length
 webrepl = {'active': True, 'password': "4242"}
@@ -50,17 +73,12 @@ CTS_PIN_NR = const(5)       # P1_in - RJ12-2 - Cross cable
 TX_PIN_NR = const(18)       # P1_Out - Pin 5 - Straight cable
 DTR_PIN_NR = const(19)      # P1_Out - Pin 2 - Straight cable
 
+# ---------------------------------------------------------------------------
+# Local test/development overrides.
+# To enable test mode for your own device without modifying this file, add
+# your board's MAC suffix to config_local.py instead of here.
+# ---------------------------------------------------------------------------
 TEST = False
-#autodetect my test ESP32 - M5,  EP32-Pico
-if TEST or hexlify(unique_id())[-6:] in [b'2598b4', b'19e74c', b'40665c', b'19e74c']:
-    # Test setup - no splitter
-    TEST = True
-    RUN_SIM = TEST
-    RUN_SPLITTER = not TEST
-    HOST_NAME += b'_' + hexlify(unique_id())[-6:]
-    if hexlify(unique_id())[-6:] in [b'2598b4', b'583790']: # M5Stack
-        RX_PIN_NR = 23   # to allow wiring on M5 Base
-    INTERVAL_MEM = 30   # impatient while testing
 
 #MQTT topic follows network ID
 ROOT_TOPIC = HOST_NAME
@@ -135,15 +153,15 @@ codetable = (
     ("0-0:96.7.21"          , "outages/short_power_outages"),        # Number of power failures per phase
     ("0-0:96.7.9"           , "outages/long_power_outages"),
 
-    ("1-0:32.32.0"          , "outages/short_power_drops"),          # Number of power drops per phase
-    ("1-0:32.36.0"          , "outages/short_power_peaks"),
-
-
-    ("1-0:32.32.0"          , "outages/voltage_sags/l1"),            # Number of voltage sags
+    # Voltage sags and swells per phase (L1 = 32.*, L2 = 52.*, L3 = 72.*).
+    # Note: codes 1-0:32.32.0 / 1-0:32.36.0 were previously also listed as
+    # "short_power_drops" / "short_power_peaks" — those duplicates have been
+    # removed; the per-phase voltage sag/swell topics take precedence.
+    ("1-0:32.32.0"          , "outages/voltage_sags/l1"),
     ("1-0:52.32.0"          , "outages/voltage_sags/l2"),
     ("1-0:72.32.0"          , "outages/voltage_sags/l3"),
 
-    ("1-0:32.36.0"          , "outages/voltage_swells/l1"),          # Number of voltage swells
+    ("1-0:32.36.0"          , "outages/voltage_swells/l1"),
     ("1-0:52.36.0"          , "outages/voltage_swells/l2"),
     ("1-0:72.36.0"          , "outages/voltage_swells/l3"),
 

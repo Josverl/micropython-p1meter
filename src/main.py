@@ -1,5 +1,3 @@
-
-#import ugc as gc
 import gc
 import logging
 import time
@@ -10,7 +8,6 @@ from mqttclient import MQTTClient2
 import config as cfg
 from utilities import cpu_temp, Feedback, reboot, getntptime
 
-# Splitter and Simulator cannot be run at the same time as they use the same UART
 if cfg.RUN_SIM and not cfg.RUN_SPLITTER:
     from p1meter_sym import P1MeterSIM
 
@@ -27,45 +24,43 @@ def set_global_exception():
     loop = asyncio.get_event_loop()
     loop.set_exception_handler(handle_exception)
 
-async def maintain_memory(interval: int = cfg.INTERVAL_MEM):
-    "run GC at a ~10 minute interval"
+async def maintain_memory(mq_client, p1_meter, interval: int = cfg.INTERVAL_MEM):
+    "run GC at a ~10 minute interval and publish housekeeping metrics"
     while 1:
         before = gc.mem_free()                              #pylint: disable=no-member
         gc.collect()
         gc.threshold(gc.mem_free() // 4 + gc.mem_alloc())   #pylint: disable=no-member
         after = gc.mem_free()                               #pylint: disable=no-member
-        log.debug("freed: {0:,} - now free: {1:,}".format(after-before, after).replace(',', '.')) # EU Style : use . as a thousands seperator
-        glb_mqtt_client.publish_one(cfg.ROOT_TOPIC + b"/sensor/mem_free", str(after))
-        glb_mqtt_client.publish_one(cfg.ROOT_TOPIC + b"/sensor/cpu_temp", str(cpu_temp()))
-        glb_mqtt_client.publish_one(cfg.ROOT_TOPIC + b"/sensor/client_id", cfg.HOST_NAME)
-        glb_mqtt_client.publish_one(cfg.ROOT_TOPIC + b"/sensor/telegrams_rx", str(glb_p1_meter.telegrams_rx))
-        glb_mqtt_client.publish_one(cfg.ROOT_TOPIC + b"/sensor/telegrams_tx", str(glb_p1_meter.telegrams_tx))
-        glb_mqtt_client.publish_one(cfg.ROOT_TOPIC + b"/sensor/telegrams_pub", str(glb_p1_meter.telegrams_pub))
-        glb_mqtt_client.publish_one(cfg.ROOT_TOPIC + b"/sensor/telegrams_err", str(glb_p1_meter.telegrams_err))
+        log.debug("freed: {0:,} - now free: {1:,}".format(after - before, after).replace(',', '.'))
+        mq_client.publish_one(cfg.ROOT_TOPIC + b"/sensor/mem_free", str(after))
+        mq_client.publish_one(cfg.ROOT_TOPIC + b"/sensor/cpu_temp", str(cpu_temp()))
+        mq_client.publish_one(cfg.ROOT_TOPIC + b"/sensor/client_id", cfg.HOST_NAME)
+        mq_client.publish_one(cfg.ROOT_TOPIC + b"/sensor/telegrams_rx", str(p1_meter.telegrams_rx))
+        mq_client.publish_one(cfg.ROOT_TOPIC + b"/sensor/telegrams_tx", str(p1_meter.telegrams_tx))
+        mq_client.publish_one(cfg.ROOT_TOPIC + b"/sensor/telegrams_pub", str(p1_meter.telegrams_pub))
+        mq_client.publish_one(cfg.ROOT_TOPIC + b"/sensor/telegrams_err", str(p1_meter.telegrams_err))
         await asyncio.sleep(interval)
 
-async def update_leds():
+async def update_leds(mq_client):
     "set the leds to reflect the state of the main components"
     while 1:
-        # wifi led
         if wifi.wlan.status() == wifi.network.STAT_GOT_IP:
             fb.update(fb.LED_NETWORK, fb.GREEN)
         else:
             fb.update(fb.LED_NETWORK, fb.RED)
 
-        #MQTT
-        if glb_mqtt_client.healthy():
+        if mq_client.healthy():
             fb.update(fb.LED_MQTT, fb.GREEN)
         else:
             fb.update(fb.LED_MQTT, fb.RED)
 
         await asyncio.sleep(1)
 
-async def trigger_all(interval: int = cfg.INTERVAL_ALL):
-    "trigger the sending of the complete next telegram every 5 minutes"
+async def trigger_all(p1_meter, interval: int = cfg.INTERVAL_ALL):
+    "trigger the sending of the complete next telegram every INTERVAL_ALL seconds"
     while 1:
         await asyncio.sleep(interval)
-        glb_p1_meter.clearlast()
+        p1_meter.clearlast()
 
 async def ntp_sync(t=600):
     "sync time from ntp periodically"
@@ -78,49 +73,38 @@ async def ntp_sync(t=600):
             pass
         await asyncio.sleep(t)
 
-async def main(mq_client):
-    # debug aid
+async def main(mq_client, p1_meter):
     log.info("Set up main tasks")
-    set_global_exception()  # Debug aid
+    set_global_exception()
 
-    asyncio.create_task(update_leds())
-    # connect to wifi and mqtt broker
+    asyncio.create_task(update_leds(mq_client))
     asyncio.create_task(wifi.ensure_connected())
     asyncio.create_task(ntp_sync())
     asyncio.create_task(mq_client.ensure_mqtt_connected())
     if cfg.RUN_SIM and not cfg.RUN_SPLITTER:
-        # SIMULATION: simulate meter input on this machine
-        sim = P1MeterSIM(glb_p1_meter.uart, mq_client, fb)
+        sim = P1MeterSIM(p1_meter.uart, mq_client, fb)
         asyncio.create_task(sim.sender())
 
-    # start receiver
-    asyncio.create_task(glb_p1_meter.receive())
+    asyncio.create_task(p1_meter.receive())
+    asyncio.create_task(trigger_all(p1_meter))
+    asyncio.create_task(maintain_memory(mq_client, p1_meter))
 
-    asyncio.create_task(trigger_all())
-
-    # run memory maintenance task
-    asyncio.create_task(maintain_memory())
     while True:
         await asyncio.sleep(1)
 
 ###############################################################################
 
-
-glb_mqtt_client = MQTTClient2()
-glb_p1_meter = P1Meter(mq_client=glb_mqtt_client, fb=fb)
-
 def run():
+    mq_client = MQTTClient2()
+    p1_meter = P1Meter(mq_client=mq_client, fb=fb)
     try:
         log.info('micropython p1 meter is starting...')
         fb.clear()
-        asyncio.run(main(glb_mqtt_client))
+        asyncio.run(main(mq_client, p1_meter))
     finally:
-        # status
         fb.clear(fb.RED)
-
         log.info("Clear async loop retained state")
-        asyncio.new_event_loop()  # Clear retained state
-
+        asyncio.new_event_loop()
         reboot(10)
 
 
